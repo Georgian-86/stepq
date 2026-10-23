@@ -13,3 +13,4 @@ ui-debug.log
 .firebase/
 playwright-report/
 test-results/
+functions/lib/
