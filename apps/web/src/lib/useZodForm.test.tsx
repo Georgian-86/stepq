@@ -154,4 +154,44 @@ describe('useZodForm + ErrorSummary', () => {
       Object.defineProperty(crypto, 'randomUUID', { value: original, configurable: true });
     }
   });
+
+  it('idPrefix namespaces field ids so two forms on one page never collide', async () => {
+    const user = userEvent.setup();
+    function Prefixed() {
+      const form = useZodForm(schema, { idPrefix: 'waitlist' });
+      return (
+        <form onSubmit={form.submit(vi.fn())} noValidate>
+          <ErrorSummary errors={form.errors} fieldId={form.fieldId} focusKey={form.failedSubmits} />
+          <Field label="Name" {...form.field('name')} error={form.errors.name} />
+          <Field label="Email" {...form.field('email')} error={form.errors.email} />
+          <button type="submit">Send</button>
+        </form>
+      );
+    }
+    render(
+      <>
+        <Prefixed />
+        <input id="email" aria-label="Other email" />
+      </>,
+    );
+    expect(screen.getByLabelText('Email')).toHaveAttribute('id', 'waitlist-email');
+    expect(screen.getByLabelText('Email')).toHaveAttribute('name', 'email');
+    await user.click(screen.getByRole('button', { name: 'Send' }));
+    expect(screen.getByRole('link', { name: 'Enter a valid email' })).toHaveAttribute(
+      'href',
+      '#waitlist-email',
+    );
+    Element.prototype.scrollIntoView ??= () => {};
+    await user.click(screen.getByRole('link', { name: 'Enter a valid email' }));
+    expect(screen.getByLabelText('Email')).toHaveFocus();
+  });
+
+  it('still accepts initial values', () => {
+    function Init() {
+      const form = useZodForm(schema, { initial: { name: 'Riya' } });
+      return <input aria-label="Name" {...form.field('name')} />;
+    }
+    render(<Init />);
+    expect(screen.getByLabelText('Name')).toHaveValue('Riya');
+  });
 });

@@ -27,12 +27,25 @@ function issuesToErrors(issues: z.ZodIssue[]): Errors {
   return out;
 }
 
+export interface ZodFormOptions<S extends AnyObject> {
+  initial?: Values<S>;
+  /**
+   * Namespaces element ids (`<prefix>-<key>`) so two forms on one page (e.g. the waitlist card
+   * and the founder modal, both with name/email) never share an id. Pass `fieldId` to
+   * ErrorSummary so its links resolve.
+   */
+  idPrefix?: string;
+}
+
 /**
  * Form state validated by a shared zod schema. Fields validate on blur and all at once on
  * submit. `requestId` (the server's idempotency key) is created once per form instance, kept
  * across retries of a failed submit, and renewed only after a successful one.
  */
-export function useZodForm<S extends AnyObject>(schema: S, initial: Values<S> = {}) {
+export function useZodForm<S extends AnyObject>(
+  schema: S,
+  { initial = {}, idPrefix }: ZodFormOptions<S> = {},
+) {
   const [values, setValues] = useState<Values<S>>(initial);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -73,20 +86,24 @@ export function useZodForm<S extends AnyObject>(schema: S, initial: Values<S> = 
     [schema, payload],
   );
 
+  /** Element id for a field key (`<idPrefix>-<key>`, or the key itself without a prefix). */
+  const fieldId = useCallback((key: string) => (idPrefix ? `${idPrefix}-${key}` : key), [idPrefix]);
+
   /**
-   * Props for a text-like input bound to `key`: id (= key, so ErrorSummary links resolve),
-   * name, value, change and blur-validation. For chips/checkbox/file, pass `id={key}` yourself.
+   * Props for a text-like input bound to `key`: id (= fieldId(key), so ErrorSummary links
+   * resolve), name, value, change and blur-validation. For chips/checkbox/file, pass
+   * `id={fieldId(key)}` yourself.
    */
   const field = useCallback(
     (key: keyof Values<S> & string) => ({
-      id: key,
+      id: fieldId(key),
       name: key,
       value: (values[key] as string | undefined) ?? '',
       onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
         setValue(key, e.target.value),
       onBlur: () => validateField(key),
     }),
-    [values, setValue, validateField],
+    [values, setValue, validateField, fieldId],
   );
 
   const submit = useCallback(
@@ -130,6 +147,7 @@ export function useZodForm<S extends AnyObject>(schema: S, initial: Values<S> = 
     submitting,
     failedSubmits,
     field,
+    fieldId,
     validateField,
     submit,
     get requestId() {

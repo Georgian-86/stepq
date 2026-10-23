@@ -31,6 +31,25 @@ export function openModalParam(name: string, extra: Record<string, string> = {})
 }
 
 /**
+ * Swaps the open modal for `name` in place (no new history entry), e.g. W02 → W03, dropping
+ * `removeKeys` (such as a one-time token). If the current entry was pushed by a modal, the new
+ * one is marked too, so closing it goes Back to the page underneath.
+ */
+export function replaceModalParam(
+  name: string,
+  extra: Record<string, string> = {},
+  removeKeys: string[] = [],
+) {
+  const url = new URL(window.location.href);
+  for (const k of removeKeys) url.searchParams.delete(k);
+  url.searchParams.set('modal', name);
+  for (const [k, v] of Object.entries(extra)) url.searchParams.set(k, v);
+  const state = window.history.state as Record<string, unknown> | null;
+  window.history.replaceState(state?.[MARK] ? { [MARK]: name } : {}, '', url);
+  window.dispatchEvent(new Event(CHANGE));
+}
+
+/**
  * A modal addressed by `?modal=<name>`, so it can be linked and the back button closes it.
  * Reacts to `open()`, Back/Forward and Next navigations (`<Link href="?modal=…">`,
  * `router.push`) via `useSearchParams`. Because of that, a component using this hook must

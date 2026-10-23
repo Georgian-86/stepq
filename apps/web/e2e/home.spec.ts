@@ -1,0 +1,170 @@
+import { expect, test, type Page } from '@playwright/test';
+import { actionTokenFromMail, readDoc, readMail, resetEmulators } from './helpers/emulator';
+
+test.beforeEach(async () => {
+  await resetEmulators();
+});
+
+const card = (page: Page) => page.locator('#waitlist');
+const liveCount = (page: Page) =>
+  page.getByRole('status').filter({ hasText: 'people have joined' });
+// A closing modal stays in the DOM for its exit animation, so dialogs are found by name.
+const w02 = (page: Page) => page.getByRole('dialog', { name: "You're on the list!" });
+const w03 = (page: Page, name: string) => page.getByRole('dialog', { name: `@${name} is yours` });
+
+async function join(page: Page, name: string, email: string) {
+  const form = card(page);
+  await form.getByLabel('Full name').fill(name);
+  await form.getByLabel('Email').fill(email);
+  await form.getByRole('radio', { name: 'Female' }).click();
+  await form.getByRole('radio', { name: '18–24' }).click();
+  await form.getByRole('button', { name: 'Join the waitlist' }).click();
+}
+
+async function waitForLiveCount(page: Page) {
+  await expect(liveCount(page)).toHaveText(/^\d[\d,]* people have joined the waitlist$/);
+}
+
+test('the live count updates when someone joins in another browser', async ({ page, browser }) => {
+  await page.goto('/');
+  await expect(liveCount(page)).toHaveText('0 people have joined the waitlist');
+
+  const other = await browser.newContext();
+  const page2 = await other.newPage();
+  await page2.goto('/');
+  await waitForLiveCount(page2);
+  await join(page2, 'Riya Sharma', 'riya@example.com');
+  await expect(w02(page2)).toContainText("You're #1.");
+  await other.close();
+
+  await expect(liveCount(page)).toHaveText('1 people have joined the waitlist');
+});
+
+test('join → reserve a username → W03; a second person sees it as taken', async ({
+  page,
+  browser,
+}) => {
+  await page.goto('/');
+  await waitForLiveCount(page);
+  await join(page, 'Riya Sharma', 'Riya@Example.com');
+
+  const reserve = w02(page);
+  await expect(reserve.getByRole('heading', { name: "You're on the list!" })).toBeVisible();
+  await expect(reserve).toContainText(
+    "You're #1. We'll email riya@example.com the day StepQ launches.",
+  );
+  await expect(page).toHaveURL(/[?&]modal=reserve/);
+
+  await reserve.getByLabel('Username').fill('riya.walks');
+  await expect(reserve.getByText('Available', { exact: true })).toBeVisible();
+  await reserve.getByRole('button', { name: 'Reserve @riya.walks' }).click();
+
+  const reserved = w03(page, 'riya.walks');
+  await expect(reserved.getByRole('heading', { name: '@riya.walks is yours' })).toBeVisible();
+  await expect(reserved).toContainText(
+    "It'll be waiting for you when you sign up with riya@example.com.",
+  );
+  await expect(reserved.getByRole('button', { name: /stepq\.in\/join/ })).toBeVisible();
+  await reserved.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).not.toHaveURL(/modal=/);
+
+  const other = await browser.newContext();
+  const page2 = await other.newPage();
+  await page2.goto('/');
+  await waitForLiveCount(page2);
+  await join(page2, 'Aman Gupta', 'aman@example.com');
+  const second = w02(page2);
+  await expect(second).toContainText("You're #2.");
+  await second.getByLabel('Username').fill('riya.walks');
+  await expect(second.getByText('Taken', { exact: true })).toBeVisible();
+  await expect(second.getByRole('button', { name: 'Reserve @riya.walks' })).toBeDisabled();
+  await other.close();
+});
+
+test('joining again with the same email shows the position and emails a reserve link', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForLiveCount(page);
+  await join(page, 'Riya Sharma', 'riya@example.com');
+  await expect(w02(page)).toContainText("You're #1.");
+  await w02(page).getByRole('button', { name: 'Maybe later' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await page.reload();
+  await waitForLiveCount(page);
+  await join(page, 'Riya Sharma', ' RIYA@example.com ');
+  const dialog = w02(page);
+  await expect(dialog).toContainText(
+    "You're already on the list (#1). We've emailed you a link to reserve your username.",
+  );
+  await expect(dialog.getByLabel('Username')).toHaveCount(0);
+
+  await expect
+    .poll(async () => (await readMail({ to: 'riya@example.com', template: 'reserveLink' })).length)
+    .toBe(1);
+  const [mail] = await readMail({ to: 'riya@example.com', template: 'reserveLink' });
+  await expect
+    .poll(async () => (await readMail({ template: 'reserveLink' }))[0]?.status)
+    .toBe('sent');
+
+  // The emailed link opens W02 with that token.
+  await page.goto(`/?modal=reserve&token=${encodeURIComponent(actionTokenFromMail(mail!))}`);
+  const fromLink = page.getByRole('dialog', { name: 'Reserve your username' });
+  await fromLink.getByLabel('Username').fill('riya_walks');
+  await expect(fromLink.getByText('Available', { exact: true })).toBeVisible();
+  await fromLink.getByRole('button', { name: 'Reserve @riya_walks' }).click();
+  await expect(w03(page, 'riya_walks')).toContainText("It'll be waiting for you");
+  await expect(page).not.toHaveURL(/token=/);
+});
+
+test('an empty submit focuses the error summary and marks the fields', async ({ page }) => {
+  await page.goto('/');
+  await waitForLiveCount(page);
+  const form = card(page);
+  await form.getByRole('button', { name: 'Join the waitlist' }).click();
+
+  const summary = form.getByRole('alert');
+  await expect(summary).toBeFocused();
+  await expect(summary.getByRole('link')).toHaveCount(4);
+  await expect(form.getByLabel('Full name')).toHaveAttribute('aria-invalid', 'true');
+  await expect(form.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true');
+  await expect(form.getByRole('radiogroup', { name: 'Gender' })).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
+  await expect(form.getByRole('radiogroup', { name: 'Age group' })).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
+  // Field ids are unique on the page (the founder modal has its own name/email).
+  expect(await page.locator('[id="name"], [id="email"]').count()).toBe(0);
+});
+
+test('no sample data is shown and the empty backers wall is hidden', async ({ page }) => {
+  await page.goto('/');
+  await waitForLiveCount(page);
+  await expect(
+    page.getByRole('heading', { name: 'Walking, made a happy daily habit.' }),
+  ).toBeVisible();
+  const text = await page.locator('body').innerText();
+  expect(text).not.toContain('12,480');
+  expect(text).not.toContain('12,481');
+  expect(text).not.toContain('Aarav M.');
+  await expect(page.getByText('Our early backers')).toHaveCount(0);
+});
+
+test('/join keeps ref and UTM params and stores them as the source', async ({ page }) => {
+  await page.goto('/join?ref=abc&utm_source=ig&x=1');
+  await expect(page).toHaveURL(/\/\?ref=abc&utm_source=ig&x=1$/);
+  await waitForLiveCount(page);
+  await join(page, 'Riya Sharma', 'riya@example.com');
+  await expect(w02(page)).toContainText("You're #1.");
+
+  const link = await readDoc<{ id: string }>('waitlistEmails/riya@example.com');
+  const entry = await readDoc<{ source?: string }>(`waitlist/${link!.id}`);
+  expect(entry?.source).toContain('ref=abc');
+  expect(entry?.source).toContain('utm_source=ig');
+  expect(entry?.source).not.toContain('x=1');
+});

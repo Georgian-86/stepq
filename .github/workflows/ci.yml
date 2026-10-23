@@ -26,6 +26,16 @@ jobs:
       - run: pnpm test
       - name: Firebase rules tests (emulators)
         run: pnpm emulators:unit -- "pnpm --filter functions test:emulator"
-      - name: E2E (skipped until apps/web exists)
-        if: hashFiles('apps/web/package.json') != ''
+      - name: Install Playwright Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: E2E (Playwright, next build + start against the Firebase emulators)
         run: pnpm e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7

@@ -7,7 +7,7 @@ let nextSearch = '';
 const useSearchParams = vi.fn(() => new URLSearchParams(nextSearch));
 vi.mock('next/navigation', () => ({ useSearchParams }));
 
-const { useModalParam, openModalParam } = await import('./useModalParam');
+const { useModalParam, openModalParam, replaceModalParam } = await import('./useModalParam');
 
 describe('useModalParam', () => {
   beforeEach(() => {
@@ -65,5 +65,27 @@ describe('useModalParam', () => {
     act(() => openModalParam('founder', { topic: 'partnership' }));
     expect(result.current.isOpen).toBe(true);
     expect(result.current.params.get('topic')).toBe('partnership');
+  });
+
+  it('replaceModalParam swaps modals in place; close then leaves the page clean', async () => {
+    const { result: reserve } = renderHook(() => useModalParam('reserve'));
+    const { result: done } = renderHook(() => useModalParam('reserved'));
+    act(() => reserve.current.open());
+    act(() => replaceModalParam('reserved', { u: 'riya.walks' }));
+    expect(window.location.search).toBe('?modal=reserved&u=riya.walks');
+    expect(reserve.current.isOpen).toBe(false);
+    expect(done.current.isOpen).toBe(true);
+    act(() => done.current.close(['u']));
+    await waitFor(() => expect(done.current.isOpen).toBe(false));
+    expect(window.location.search).toBe('');
+  });
+
+  it('replaceModalParam from a deep link drops the given keys', () => {
+    window.history.replaceState(null, '', '/?modal=reserve&token=abc&ref=x');
+    act(() => replaceModalParam('reserved', { u: 'a.b' }, ['token']));
+    expect(window.location.search).toBe('?modal=reserved&ref=x&u=a.b');
+    const { result } = renderHook(() => useModalParam('reserved'));
+    act(() => result.current.close(['u']));
+    expect(window.location.search).toBe('?ref=x');
   });
 });

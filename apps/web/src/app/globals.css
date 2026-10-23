@@ -99,6 +99,16 @@
   transform-origin: 50% 100%;
 }
 
+/* Live count dot: a soft opacity pulse (stops under reduced motion). */
+@keyframes live-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
 /* Reveal: only hidden once JS has opted the element in, so content shows without JS. */
 [data-reveal='pending'] {
   opacity: 0;
