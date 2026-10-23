@@ -35,6 +35,22 @@ importers:
 
   packages/core:
     devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@26.6.5)(yaml@2.9.1)
+
+  packages/schemas:
+    dependencies:
+      zod:
+        specifier: ^3
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
       vitest:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@26.6.5)(yaml@2.9.1)
@@ -6299,7 +6315,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.2
-      '@types/node': 22.20.5
+      '@types/node': 26.6.5
       long: 5.3.2
 
   proxy-addr@2.0.8:
