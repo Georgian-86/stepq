@@ -75,14 +75,14 @@ export async function describeActionHandler(req: Req): Promise<Api['describeActi
   const { token } = parseOrThrow(actionTokenInput, req.data);
   await enforceRateLimit(req, 'describeAction', 60, 600);
   const { k, id } = verifyAnyToken(token, ACTION_KINDS);
-  return { kind: k, ...(await describe(k as HandledKind, id)) };
+  return { kind: k, ...(await describe(k, id)) };
 }
 
 export async function confirmActionHandler(req: Req): Promise<Api['confirmAction']['out']> {
   const { token } = parseOrThrow(actionTokenInput, req.data);
   await enforceRateLimit(req, 'confirmAction', 20, 600);
   const { k, id } = verifyAnyToken(token, ACTION_KINDS);
-  await confirm(k as HandledKind, id);
+  await confirm(k, id);
   return { done: true };
 }
 

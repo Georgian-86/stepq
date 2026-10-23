@@ -29,17 +29,20 @@ function decode(token: string): Partial<TokenPayload> {
   }
 }
 
-function accept(payload: Partial<TokenPayload>, allowed: readonly ActionKind[]) {
+function accept<K extends ActionKind>(
+  payload: Partial<TokenPayload>,
+  allowed: readonly K[],
+): { k: K; id: string } {
   if (
     !payload.k ||
-    !allowed.includes(payload.k) ||
+    !(allowed as readonly ActionKind[]).includes(payload.k) ||
     typeof payload.id !== 'string' ||
     typeof payload.exp !== 'number' ||
     payload.exp <= Date.now()
   ) {
     throw denied();
   }
-  return { k: payload.k, id: payload.id };
+  return { k: payload.k as K, id: payload.id };
 }
 
 export function verifyToken(token: string, kind: ActionKind): { id: string } {
@@ -47,9 +50,9 @@ export function verifyToken(token: string, kind: ActionKind): { id: string } {
 }
 
 /** Verifies signature and expiry, then returns the kind/id if the kind is in `allowed`. */
-export function verifyAnyToken(
+export function verifyAnyToken<K extends ActionKind>(
   token: string,
-  allowed: readonly ActionKind[],
-): { k: ActionKind; id: string } {
+  allowed: readonly K[],
+): { k: K; id: string } {
   return accept(decode(token), allowed);
 }

@@ -106,12 +106,34 @@ describe('notification templates', () => {
   it('ambassadorAlert', async () => {
     const r = await render(
       'ambassadorAlert',
-      { ...team, link: 'ftp://x', approveUrl: 'https://stepq.in/approve?t=1' },
+      {
+        name: 'Riya Sharma',
+        email: 'riya@example.com',
+        phone: '+919876543210',
+        city: 'Mumbai',
+        instagram: 'riya.walks',
+        instagramUrl: 'https://instagram.com/riya.walks',
+        followersLabel: '1k–10k',
+        collegeOrCompany: 'St Xavier',
+        plan: 'Weekend walks.',
+        approveUrl: 'https://stepq.in/approve?t=1',
+      },
       opts,
     );
-    expect(r.subject).toBe('New ambassador application: Asha · Designer');
-    expect(r.html).toContain('https://stepq.in/approve?t=1');
-    expect(r.html).not.toContain('href="ftp:');
+    expect(r.subject).toBe('New ambassador application: Riya Sharma · Mumbai');
+    for (const t of [
+      'Mumbai',
+      '@riya.walks',
+      '1k–10k',
+      'St Xavier',
+      'Weekend walks.',
+      'Approve Riya',
+    ])
+      expect(r.html).toContain(t);
+    expect(r.html).toContain('href="https://stepq.in/approve?t=1"');
+    expect(r.html).toContain('href="https://instagram.com/riya.walks"');
+    expect(r.html).not.toContain('Open resume');
+    expect(r.html).not.toContain('&#10003;');
   });
   it('backingAlert', async () => {
     const r = await render(

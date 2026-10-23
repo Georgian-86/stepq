@@ -1,5 +1,5 @@
 import { firstName } from '@stepq/core';
-import { ambassadorInput, type Api } from '@stepq/schemas';
+import { ambassadorInput, type AmbassadorInput, type Api } from '@stepq/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
 import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { FOUNDER_INBOX, SITE_URL } from '../config';
@@ -13,6 +13,12 @@ import { parseOrThrow } from '../lib/validate';
 
 type Req = Pick<CallableRequest, 'data' | 'rawRequest'>;
 
+const FOLLOWERS_LABELS: Record<AmbassadorInput['followers'], string> = {
+  under_1k: 'Under 1k',
+  '1k_10k': '1k–10k',
+  '10k_50k': '10k–50k',
+  '50k_plus': '50k+',
+};
 const APPROVE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function submitAmbassadorHandler(req: Req): Promise<Api['submitAmbassador']['out']> {
@@ -21,7 +27,7 @@ export async function submitAmbassadorHandler(req: Req): Promise<Api['submitAmba
 
   const id = input.requestId;
   return once('ambassador', id, async (tx) => {
-    tx.set(db().doc(`ambassadorApplications/${id}`), {
+    tx.create(db().doc(`ambassadorApplications/${id}`), {
       name: input.name,
       email: input.email,
       phone: input.phone,
@@ -38,16 +44,16 @@ export async function submitAmbassadorHandler(req: Req): Promise<Api['submitAmba
       to: FOUNDER_INBOX.value(),
       subject: '',
       template: 'ambassadorAlert',
-      // The alert template shares the team-application shape: the role line carries the
-      // city and the "resume" link is the applicant's Instagram profile.
       props: {
         name: input.name,
         email: input.email,
         phone: input.phone,
-        roleLabel: `Ambassador (${input.city})`,
-        link: `https://instagram.com/${input.instagram}`,
-        why: input.plan,
-        resumeUrl: `https://instagram.com/${input.instagram}`,
+        city: input.city,
+        instagram: input.instagram,
+        instagramUrl: `https://instagram.com/${input.instagram}`,
+        followersLabel: FOLLOWERS_LABELS[input.followers],
+        collegeOrCompany: input.collegeOrCompany,
+        plan: input.plan,
         approveUrl: `${SITE_URL.value()}/confirm?token=${token}`,
       },
       replyTo: input.email,

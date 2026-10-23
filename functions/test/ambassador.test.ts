@@ -63,6 +63,12 @@ describe.skipIf(!hasEmulator)('ambassador applications and action confirm', () =
     });
     const alerts = await mailsOf('ambassadorAlert');
     expect(alerts).toHaveLength(1);
+    expect(alerts[0]!.props).toMatchObject({
+      followersLabel: '1k–10k',
+      collegeOrCompany: 'St. Xavier’s College',
+      instagram: 'riya.walks',
+      city: 'Mumbai',
+    });
     expect(alerts[0]!.props.approveUrl).toContain('/confirm?token=');
     expect(alerts[0]!.replyTo).toBe('riya@gmail.com');
   });
