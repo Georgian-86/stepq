@@ -16,25 +16,40 @@ export function signToken(payload: TokenPayload): string {
   return `${body}.${b64(mac(body))}`;
 }
 
-export function verifyToken(token: string, kind: ActionKind): { id: string } {
+function decode(token: string): Partial<TokenPayload> {
   const [body, sig, ...rest] = token.split('.');
   if (!body || !sig || rest.length > 0) throw denied();
   const given = Buffer.from(sig, 'base64url');
   const expected = mac(body);
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) throw denied();
-  let payload: Partial<TokenPayload>;
   try {
-    payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
   } catch {
     throw denied();
   }
+}
+
+function accept(payload: Partial<TokenPayload>, allowed: readonly ActionKind[]) {
   if (
-    payload.k !== kind ||
+    !payload.k ||
+    !allowed.includes(payload.k) ||
     typeof payload.id !== 'string' ||
     typeof payload.exp !== 'number' ||
     payload.exp <= Date.now()
   ) {
     throw denied();
   }
-  return { id: payload.id };
+  return { k: payload.k, id: payload.id };
+}
+
+export function verifyToken(token: string, kind: ActionKind): { id: string } {
+  return { id: accept(decode(token), [kind]).id };
+}
+
+/** Verifies signature and expiry, then returns the kind/id if the kind is in `allowed`. */
+export function verifyAnyToken(
+  token: string,
+  allowed: readonly ActionKind[],
+): { k: ActionKind; id: string } {
+  return accept(decode(token), allowed);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { signToken, verifyToken } from '../src/lib/signedToken';
+import { signToken, verifyAnyToken, verifyToken } from '../src/lib/signedToken';
 
 const future = () => Date.now() + 60_000;
 
@@ -39,5 +39,19 @@ describe('signedToken', () => {
         expect.objectContaining({ code: 'permission-denied' }),
       );
     }
+  });
+
+  it('verifyAnyToken returns the verified kind only when allowed', () => {
+    const t = signToken({ k: 'approveAmbassador', id: 'a1', exp: future() });
+    expect(verifyAnyToken(t, ['approveAmbassador', 'verifyBacking'])).toEqual({
+      k: 'approveAmbassador',
+      id: 'a1',
+    });
+    expect(() => verifyAnyToken(t, ['verifyBacking'])).toThrowError(
+      expect.objectContaining({ code: 'permission-denied' }),
+    );
+    expect(() => verifyAnyToken('junk', ['verifyBacking'])).toThrowError(
+      expect.objectContaining({ code: 'permission-denied' }),
+    );
   });
 });
