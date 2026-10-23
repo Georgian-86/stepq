@@ -2,6 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { z } from 'zod';
 import { describe, expect, it, vi } from 'vitest';
+import { ErrorSummary } from '@/components/ui/ErrorSummary';
+import { Field } from '@/components/ui/Field';
 import { ApiFieldError } from './api';
 import { useZodForm } from './useZodForm';
 
@@ -104,5 +106,52 @@ describe('useZodForm', () => {
     await waitFor(() =>
       expect(screen.getByTestId('email-error')).toHaveTextContent('Already used'),
     );
+  });
+});
+
+describe('useZodForm + ErrorSummary', () => {
+  it('field(key) gives the input id=key so summary links resolve to the field', async () => {
+    const user = userEvent.setup();
+    function SummaryForm() {
+      const form = useZodForm(schema);
+      return (
+        <form onSubmit={form.submit(vi.fn())} noValidate>
+          <ErrorSummary errors={form.errors} focusKey={form.failedSubmits} />
+          <Field label="Name" {...form.field('name')} error={form.errors.name} />
+          <Field label="Email" {...form.field('email')} error={form.errors.email} />
+          <button type="submit">Send</button>
+        </form>
+      );
+    }
+    render(<SummaryForm />);
+    await user.click(screen.getByRole('button', { name: 'Send' }));
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      const target = document.getElementById(link.getAttribute('href')!.slice(1));
+      expect(target).toBeInstanceOf(HTMLInputElement);
+    }
+    Element.prototype.scrollIntoView ??= () => {};
+    await user.click(screen.getByRole('link', { name: 'Enter a valid email' }));
+    expect(screen.getByLabelText('Email')).toHaveFocus();
+  });
+
+  it('falls back to getRandomValues when crypto.randomUUID is unavailable', async () => {
+    const user = userEvent.setup();
+    const original = crypto.randomUUID;
+    Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+    try {
+      const send = vi.fn();
+      render(<Form send={send} />);
+      await user.type(screen.getByLabelText('Name'), 'Riya');
+      await user.type(screen.getByLabelText('Email'), 'riya@gmail.com');
+      await user.click(screen.getByRole('button', { name: 'Send' }));
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+      expect(send.mock.calls[0]![0].requestId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+    } finally {
+      Object.defineProperty(crypto, 'randomUUID', { value: original, configurable: true });
+    }
   });
 });

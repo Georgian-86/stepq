@@ -8,7 +8,15 @@ type AnyObject = z.ZodObject<z.ZodRawShape>;
 type Values<S extends AnyObject> = Partial<Record<keyof z.input<S> & string, unknown>>;
 type Errors = Record<string, string>;
 
-const uuid = () => crypto.randomUUID();
+/** RFC 4122 v4 id; falls back to getRandomValues where randomUUID is missing (older Safari, http). */
+export function uuid(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6]! & 0x0f) | 0x40;
+  b[8] = (b[8]! & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
 
 function issuesToErrors(issues: z.ZodIssue[]): Errors {
   const out: Errors = {};
@@ -65,9 +73,13 @@ export function useZodForm<S extends AnyObject>(schema: S, initial: Values<S> = 
     [schema, payload],
   );
 
-  /** Props for a text-like input bound to `key` (value, change, blur-validation). */
+  /**
+   * Props for a text-like input bound to `key`: id (= key, so ErrorSummary links resolve),
+   * name, value, change and blur-validation. For chips/checkbox/file, pass `id={key}` yourself.
+   */
   const field = useCallback(
     (key: keyof Values<S> & string) => ({
+      id: key,
       name: key,
       value: (values[key] as string | undefined) ?? '',
       onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>

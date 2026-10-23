@@ -46,7 +46,12 @@ export function ErrorSummary({
                 const el = document.getElementById(fieldId(name));
                 if (!el) return;
                 e.preventDefault();
-                el.focus();
+                // Groups (chips) are not focusable themselves: focus their tab stop.
+                const target = el.matches('input,select,textarea,button,a[href],[tabindex]')
+                  ? el
+                  : (el.querySelector<HTMLElement>('[tabindex="0"],input,select,textarea,button') ??
+                    el);
+                target.focus();
                 el.scrollIntoView({ block: 'center' });
               }}
             >

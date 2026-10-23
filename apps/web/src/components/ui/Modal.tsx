@@ -11,13 +11,31 @@ import { createPortal } from 'react-dom';
 import { useReducedMotion } from '@/lib/useReducedMotion';
 
 const FOCUSABLE =
-  'a[href],area[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),iframe,[tabindex]:not([tabindex="-1"]),[contenteditable="true"]';
+  'a[href],area[href],button,input:not([type="hidden"]),select,textarea,iframe,[tabindex],[contenteditable="true"]';
 
 const EXIT_MS = 140;
 
+/** True when the element (and every ancestor) is rendered: not display:none / hidden / invisible. */
+function isRendered(el: HTMLElement): boolean {
+  const check = (el as HTMLElement & { checkVisibility?: (o?: object) => boolean }).checkVisibility;
+  if (typeof check === 'function') return check.call(el, { visibilityProperty: true });
+  // Fallback for environments without layout APIs (jsdom).
+  for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (node.hidden || style.display === 'none' || style.visibility === 'hidden') return false;
+  }
+  return true;
+}
+
+/** Tabbable elements in DOM order: no tabindex=-1, nothing disabled, inert or unrendered. */
 export function focusableIn(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-    (el) => !el.closest('[inert]') && el.getAttribute('aria-hidden') !== 'true',
+    (el) =>
+      el.tabIndex >= 0 &&
+      !(el as HTMLButtonElement).disabled &&
+      !el.closest('[inert],fieldset[disabled]') &&
+      el.getAttribute('aria-hidden') !== 'true' &&
+      isRendered(el),
   );
 }
 
@@ -71,7 +89,19 @@ export function Modal({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  if (open && !mounted) setMounted(true);
+  // Capture the opener during render, before children commit (an autoFocus child would
+  // otherwise already have taken focus by the time an effect runs).
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setMounted(true);
+      if (typeof document !== 'undefined') {
+        opener.current =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      }
+    }
+  }
 
   // Exit: keep the DOM for the exit animation, then unmount.
   useEffect(() => {
@@ -87,10 +117,9 @@ export function Modal({
   // Open: remember the opener, focus inside, lock scroll, listen for Esc / Tab.
   useEffect(() => {
     if (!open) return;
-    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const root = card.current;
     if (root && !root.contains(document.activeElement)) {
-      const auto = root.querySelector<HTMLElement>('[autofocus],[data-autofocus]');
+      const auto = root.querySelector<HTMLElement>('[data-autofocus]');
       (auto ?? focusableIn(root)[0] ?? root).focus();
     }
     const prevOverflow = document.body.style.overflow;

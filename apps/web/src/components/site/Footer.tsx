@@ -2,11 +2,12 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { site, type SiteContent } from '@/content/site';
 import { ModalLink } from './ModalLink';
-import { GUTTER, WAITLIST_HREF } from './links';
+import { GUTTER, HIT_44, WAITLIST_HREF } from './links';
 import { Wordmark } from './Wordmark';
 
+/** 40 px rows as in Figma; the pseudo-element extends the target 2 px above and below (44 px). */
 const linkClass =
-  'type-web-small inline-flex min-h-[40px] items-center px-xs text-ink hover:text-deep';
+  "type-web-small relative inline-flex min-h-[40px] items-center px-xs text-ink hover:text-deep after:absolute after:inset-x-0 after:-inset-y-[2px] after:content-['']";
 
 function Column({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -31,7 +32,7 @@ export function Footer({ content = site }: { content?: SiteContent }) {
       >
         <div className="flex flex-col gap-[40px] md:flex-row md:flex-wrap md:gap-[64px]">
           <div className="flex flex-1 flex-col gap-[12px] md:min-w-[280px]">
-            <Link href="/" aria-label="StepQ home" className="self-start">
+            <Link href="/" aria-label="StepQ home" className={`self-start ${HIT_44}`}>
               <Wordmark size="footer" />
             </Link>
             <p className="type-web-body-strong text-ink">Chalo, chalte hain.</p>

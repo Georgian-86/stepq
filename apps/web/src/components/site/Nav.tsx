@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
 import { buttonClass } from '../ui/Button';
-import { trapTab } from '../ui/Modal';
 import { GUTTER, NAV_LINKS, WAITLIST_HREF } from './links';
 import { Wordmark } from './Wordmark';
 
@@ -11,28 +10,29 @@ import { Wordmark } from './Wordmark';
 export function Nav() {
   const [open, setOpen] = useState(false);
   const sheetId = useId();
+  const header = useRef<HTMLElement>(null);
   const button = useRef<HTMLButtonElement>(null);
-  const sheet = useRef<HTMLDivElement>(null);
 
+  // Disclosure pattern: Esc closes (focus back to the button), a tap outside closes,
+  // and the sheet closes if the viewport grows past the breakpoint.
   useEffect(() => {
     if (!open) return;
-    const first = sheet.current?.querySelector<HTMLElement>('a,button');
-    first?.focus();
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        button.current?.focus();
-      } else if (sheet.current) {
-        trapTab(e, sheet.current);
-      }
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      button.current?.focus();
     }
-    // Close if the viewport grows past the breakpoint.
+    function onPointer(e: PointerEvent) {
+      if (!header.current?.contains(e.target as Node)) setOpen(false);
+    }
     const mql = window.matchMedia('(min-width: 768px)');
     const onWide = () => mql.matches && setOpen(false);
     document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
     mql.addEventListener?.('change', onWide);
     return () => {
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
       mql.removeEventListener?.('change', onWide);
     };
   }, [open]);
@@ -40,12 +40,12 @@ export function Nav() {
   const close = () => setOpen(false);
 
   return (
-    <header className="relative z-40 border-b border-line bg-white">
+    <header ref={header} className="relative z-40 border-b border-line bg-white">
       <nav
         aria-label="Main"
         className={`mx-auto flex min-h-[72px] max-w-[1440px] items-center gap-[28px] py-[10px] md:min-h-[136px] md:py-[18px] ${GUTTER}`}
       >
-        <Link href="/" aria-label="StepQ home" className="flex items-center">
+        <Link href="/" aria-label="StepQ home" className="flex min-h-[44px] items-center">
           <Wordmark />
         </Link>
         <div className="flex-1" />
@@ -93,38 +93,34 @@ export function Nav() {
             />
           </span>
         </button>
-      </nav>
-      {open && (
-        <div
-          ref={sheet}
-          id={sheetId}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu"
-          className={`absolute inset-x-0 top-full border-b border-line bg-white pt-s pb-l shadow-card animate-modal-in md:hidden ${GUTTER}`}
-        >
-          <ul className="flex flex-col">
-            {NAV_LINKS.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  onClick={close}
-                  className="type-web-body-strong flex min-h-[48px] items-center border-b border-line text-ink"
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <Link
-            href={WAITLIST_HREF}
-            onClick={close}
-            className={buttonClass('primary', 'mt-l w-full')}
+        {open && (
+          <div
+            id={sheetId}
+            className={`absolute inset-x-0 top-full border-b border-line bg-white pt-s pb-l shadow-card animate-modal-in md:hidden ${GUTTER}`}
           >
-            Join the waitlist
-          </Link>
-        </div>
-      )}
+            <ul className="flex flex-col">
+              {NAV_LINKS.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    onClick={close}
+                    className="type-web-body-strong flex min-h-[48px] items-center border-b border-line text-ink"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href={WAITLIST_HREF}
+              onClick={close}
+              className={buttonClass('primary', 'mt-l w-full')}
+            >
+              Join the waitlist
+            </Link>
+          </div>
+        )}
+      </nav>
     </header>
   );
 }

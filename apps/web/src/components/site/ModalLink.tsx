@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useModalParam } from '@/lib/useModalParam';
+import { openModalParam } from '@/lib/useModalParam';
 
 /**
  * Link that opens a `?modal=` modal in place (history entry, back closes it). Without JS it is
@@ -18,7 +18,6 @@ export function ModalLink({
   className?: string;
   children: ReactNode;
 }) {
-  const { open } = useModalParam(modal);
   const href = `?${new URLSearchParams({ modal, ...params }).toString()}`;
   return (
     <a
@@ -27,7 +26,7 @@ export function ModalLink({
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
         e.preventDefault();
-        open(params);
+        openModalParam(modal, params);
       }}
     >
       {children}

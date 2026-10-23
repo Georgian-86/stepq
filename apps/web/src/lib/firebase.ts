@@ -39,6 +39,11 @@ export function initAppCheck(): AppCheck | null {
   if (flags.__stepqAppCheck !== undefined) return flags.__stepqAppCheck;
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_KEY;
   if (!siteKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        'App Check is off: NEXT_PUBLIC_RECAPTCHA_KEY is not set, so callables will be rejected.',
+      );
+    }
     flags.__stepqAppCheck = null;
     return null;
   }

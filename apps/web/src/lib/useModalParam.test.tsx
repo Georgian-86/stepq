@@ -1,9 +1,19 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { useModalParam } from './useModalParam';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Stand-in for Next's useSearchParams: a router navigation (Link / router.push) changes the URL
+// without popstate, and Next re-renders useSearchParams consumers.
+let nextSearch = '';
+const useSearchParams = vi.fn(() => new URLSearchParams(nextSearch));
+vi.mock('next/navigation', () => ({ useSearchParams }));
+
+const { useModalParam, openModalParam } = await import('./useModalParam');
 
 describe('useModalParam', () => {
-  beforeEach(() => window.history.replaceState(null, '', '/'));
+  beforeEach(() => {
+    nextSearch = '';
+    window.history.replaceState(null, '', '/');
+  });
 
   it('opens via ?modal=<name> with extra params and closes with the back button', async () => {
     const { result } = renderHook(() => useModalParam('founder'));
@@ -31,5 +41,29 @@ describe('useModalParam', () => {
     window.history.replaceState(null, '', '/?modal=pay');
     const { result } = renderHook(() => useModalParam('founder'));
     expect(result.current.isOpen).toBe(false);
+  });
+
+  it('pushes only its own marker into history state (Next adds its internals itself)', () => {
+    window.history.replaceState({ __NA: true, tree: 'x' }, '', '/');
+    const { result } = renderHook(() => useModalParam('founder'));
+    act(() => result.current.open());
+    expect(window.history.state).toEqual({ __stepqModal: 'founder' });
+  });
+
+  it('notices opens made by a Next router navigation (useSearchParams)', () => {
+    const { result, rerender } = renderHook(() => useModalParam('founder'));
+    expect(result.current.isOpen).toBe(false);
+    expect(useSearchParams).toHaveBeenCalled(); // subscribes the hook to Next navigations
+    window.history.replaceState(null, '', '/?modal=founder');
+    nextSearch = '?modal=founder';
+    rerender();
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it('openModalParam opens without a hook', () => {
+    const { result } = renderHook(() => useModalParam('founder'));
+    act(() => openModalParam('founder', { topic: 'partnership' }));
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.params.get('topic')).toBe('partnership');
   });
 });

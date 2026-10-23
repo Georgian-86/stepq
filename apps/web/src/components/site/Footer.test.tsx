@@ -36,4 +36,27 @@ describe('Footer', () => {
     expect(screen.getByText('Chalo, chalte hain.')).toBeInTheDocument();
     expect(screen.getByText('© 2026 StepQ. Made in India.')).toBeInTheDocument();
   });
+
+  it('gives every footer link and the wordmark a hit area of at least 44 px without changing layout', () => {
+    render(
+      <Footer
+        content={{
+          ...site,
+          socials: { instagram: 'https://instagram.com/stepq', linkedin: null, youtube: null },
+        }}
+      />,
+    );
+    const links = within(screen.getByRole('contentinfo')).getAllByRole('link');
+    for (const link of links) {
+      if (link.getAttribute('aria-label') === 'StepQ home') {
+        expect(link.className).toContain('after:h-[44px]');
+      } else {
+        // 40 px tall per Figma; the pseudo-element extends the target 2 px above and below.
+        expect(link.className).toContain('min-h-[40px]');
+        expect(link.className).toContain('after:-inset-y-[2px]');
+      }
+      expect(link.className).toMatch(/(^| )relative( |$)/);
+      expect(link.className).toContain("after:content-['']");
+    }
+  });
 });

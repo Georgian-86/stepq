@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
-import { Modal } from './Modal';
+import { focusableIn, Modal } from './Modal';
 
 function Harness() {
   const [open, setOpen] = useState(false);
@@ -53,5 +53,47 @@ describe('Modal', () => {
       screen.getByTestId('modal-overlay').click();
     });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('returns focus to the opener even when a child autofocuses, and skips untabbable elements', async () => {
+    const user = userEvent.setup();
+    function AutoHarness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open</button>
+          <Modal open={open} onClose={() => setOpen(false)} labelledBy="t2">
+            <h2 id="t2">Title</h2>
+            <input aria-label="Auto" autoFocus />
+            <button tabIndex={-1}>Skipped</button>
+            <button disabled>Disabled</button>
+            <div style={{ display: 'none' }}>
+              <button>Hidden</button>
+            </div>
+            <button>Last</button>
+          </Modal>
+        </>
+      );
+    }
+    render(<AutoHarness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    await user.click(opener);
+    await waitFor(() => expect(screen.getByLabelText('Auto')).toHaveFocus());
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Last' })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByLabelText('Auto')).toHaveFocus();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
+  });
+
+  it('focusableIn excludes tabindex=-1, disabled and unrendered elements', () => {
+    document.body.innerHTML =
+      '<div id="r"><button>a</button><button tabindex="-1">b</button><input disabled /><div hidden><a href="#">c</a></div><a href="#">d</a></div>';
+    expect(focusableIn(document.getElementById('r')!).map((e) => e.textContent)).toEqual([
+      'a',
+      'd',
+    ]);
   });
 });
