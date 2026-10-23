@@ -28,10 +28,12 @@ const STEPS = [
 export default function FundPage() {
   return (
     <section aria-labelledby="fund-page-title" className="bg-mango-soft">
+      {/* lg+: intro and scan card on the left, form on the right (Figma). Below lg the form
+          comes right after the intro and the scan card last. */}
       <div
-        className={`mx-auto flex max-w-[1440px] flex-col gap-[40px] py-[48px] lg:flex-row lg:items-start lg:gap-[64px] lg:pt-[88px] lg:pb-[96px] ${GUTTER}`}
+        className={`mx-auto grid max-w-[1440px] grid-cols-1 gap-[40px] py-[48px] lg:grid-cols-[minmax(0,1fr)_520px] lg:grid-rows-[auto_1fr] lg:gap-x-[64px] lg:gap-y-l lg:pt-[88px] lg:pb-[96px] ${GUTTER}`}
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-l">
+        <div className="flex min-w-0 flex-col gap-l lg:col-start-1 lg:row-start-1">
           <h1
             id="fund-page-title"
             className="type-web-hero text-ink max-lg:text-[44px] max-lg:leading-[48px] max-lg:tracking-[-1px]"
@@ -58,9 +60,13 @@ export default function FundPage() {
               </li>
             ))}
           </ol>
+        </div>
+        <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <FundForm />
+        </div>
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2 lg:self-start">
           <ScanToPayCard />
         </div>
-        <FundForm />
       </div>
     </section>
   );

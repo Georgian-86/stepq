@@ -9,6 +9,12 @@ vi.mock('@/lib/api', async (orig) => ({ ...(await orig<object>()), call }));
 vi.mock('@/lib/firebase', () => ({ functions: {}, db: {}, initAppCheck: vi.fn() }));
 const detectPlatform = vi.fn(() => 'desktop');
 vi.mock('@/lib/platform', () => ({ detectPlatform: () => detectPlatform() }));
+const openUpiLink = vi.fn();
+vi.mock('./handoff', () => ({ openUpiLink: (link: string) => openUpiLink(link) }));
+// The QR markup carries its link so tests can check it (production SVGs do not).
+vi.mock('qrcode', () => ({
+  default: { toString: async (link: string) => `<svg data-qr="${link}"></svg>` },
+}));
 
 const { FundForm } = await import('./FundForm');
 
@@ -24,6 +30,7 @@ beforeEach(() => {
   call.mockReset();
   push.mockReset();
   detectPlatform.mockReturnValue('desktop');
+  openUpiLink.mockReset();
 });
 
 describe('FundForm (W06)', () => {
@@ -88,7 +95,9 @@ describe('FundForm (W06)', () => {
       website: '',
     });
     const dialog = await screen.findByRole('dialog', { name: 'Scan to pay ₹251' });
-    expect(within(dialog).getByRole('img', { name: /QR code/ })).toHaveAttribute('data-link', LINK);
+    const qr = within(dialog).getByRole('img', { name: /QR code/ });
+    await waitFor(() => expect(qr.querySelector('svg')).toHaveAttribute('data-qr', LINK));
+    expect(openUpiLink).not.toHaveBeenCalled();
     expect(within(dialog).getByText('bhakti0parmar1@oksbi')).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: "I've paid" }));
     expect(push).toHaveBeenCalledWith('/fund/thank-you?amount=251');
@@ -117,6 +126,64 @@ describe('FundForm (W06)', () => {
     expect(links[4]).toHaveAttribute('href', LINK);
     await user.click(within(sheet).getByRole('button', { name: "I've paid" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith('/fund/thank-you?amount=251'));
+  });
+
+  it('Android: opens the returned link and offers it again as "Open UPI app"', async () => {
+    const user = userEvent.setup();
+    detectPlatform.mockReturnValue('android');
+    call.mockResolvedValue({ reference: 'ABCD12', amount: 251, upiLink: LINK });
+    render(<FundForm />);
+    await fill(user);
+    await user.click(screen.getByRole('radio', { name: '₹251' }));
+    await user.click(screen.getByRole('button', { name: 'Pay ₹251 with UPI' }));
+
+    expect(openUpiLink).toHaveBeenCalledWith(LINK);
+    expect(await screen.findByRole('link', { name: 'Open UPI app' })).toHaveAttribute('href', LINK);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Pay / })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: "I've paid" }));
+    expect(push).toHaveBeenCalledWith('/fund/thank-you?amount=251');
+
+    // Back returns to the form.
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('button', { name: 'Pay ₹251 with UPI' })).toBeInTheDocument();
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [
+      'the amount',
+      (u: ReturnType<typeof userEvent.setup>) =>
+        u.click(screen.getByRole('radio', { name: '₹101' })),
+    ],
+    [
+      'the name',
+      (u: ReturnType<typeof userEvent.setup>) => u.type(screen.getByLabelText('Name'), 'x'),
+    ],
+    [
+      'the phone',
+      (u: ReturnType<typeof userEvent.setup>) =>
+        u.type(screen.getByLabelText('Contact number'), '1'),
+    ],
+    [
+      'the wall choice',
+      (u: ReturnType<typeof userEvent.setup>) =>
+        u.click(screen.getByLabelText('Show my name on the sponsor wall')),
+    ],
+  ])('Android: editing %s drops the stale UPI link', async (_what, edit) => {
+    const user = userEvent.setup();
+    detectPlatform.mockReturnValue('android');
+    call.mockResolvedValue({ reference: 'ABCD12', amount: 251, upiLink: LINK });
+    render(<FundForm />);
+    await fill(user);
+    await user.click(screen.getByRole('radio', { name: '₹251' }));
+    await user.click(screen.getByRole('button', { name: 'Pay ₹251 with UPI' }));
+    await screen.findByRole('link', { name: 'Open UPI app' });
+
+    await edit(user);
+    expect(screen.queryByRole('link', { name: 'Open UPI app' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Pay .*with UPI$/ })).toBeInTheDocument();
   });
 
   it('shows a server field error under the field', async () => {

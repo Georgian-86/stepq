@@ -34,7 +34,7 @@ export function IosUpiSheet({
       {payment && links && (
         <div className="flex flex-col gap-[6px]">
           <div aria-hidden="true" className="flex justify-center">
-            <span className="h-[5px] w-[40px] rounded-[3px] bg-line" />
+            <span className="h-[5px] w-[40px] rounded-pill bg-line" />
           </div>
           <h2 id="upi-sheet-title" className="type-app-heading text-ink">
             Pay {formatInr(payment.amount)} with

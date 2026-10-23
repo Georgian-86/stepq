@@ -2,8 +2,8 @@
 
 import { AMOUNT_PRESETS, backingInput } from '@stepq/schemas';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { useRef, useState, type ChangeEvent } from 'react';
+import { Button, buttonClass } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { ChipGroup } from '@/components/ui/ChipGroup';
 import { ErrorSummary } from '@/components/ui/ErrorSummary';
@@ -13,6 +13,7 @@ import { call } from '@/lib/api';
 import { detectPlatform, type Platform } from '@/lib/platform';
 import { useZodForm } from '@/lib/useZodForm';
 import { formatInr, parseAmount, payLabel, thankYouHref } from './amount';
+import { openUpiLink } from './handoff';
 import { IosUpiSheet } from './IosUpiSheet';
 import { PayModal } from './PayModal';
 
@@ -56,7 +57,18 @@ export function FundForm() {
   const [payment, setPayment] = useState<Payment | null>(null);
   const amountRef = useRef<HTMLInputElement>(null);
 
+  /** Any edit after the Android hand-off goes back to the form (the shown link is stale). */
+  const resetHandoff = () => setPayment((p) => (p?.platform === 'android' ? null : p));
+  const edited = (props: ReturnType<typeof form.field>) => ({
+    ...props,
+    onChange: (e: ChangeEvent<HTMLInputElement>) => {
+      resetHandoff();
+      props.onChange(e);
+    },
+  });
+
   function choose(next: Choice) {
+    resetHandoff();
     setChoice(next);
     if (next === 'other') {
       setAmountText('');
@@ -75,6 +87,7 @@ export function FundForm() {
   }
 
   function typeAmount(text: string) {
+    resetHandoff();
     setChoice('other');
     setAmountText(text);
     setValue('amount', parseAmount(text));
@@ -84,15 +97,15 @@ export function FundForm() {
     const res = await call('recordBacking', data);
     const platform = detectPlatform();
     setPayment({ amount: res.amount, upiLink: res.upiLink, platform });
-    // Android: the OS shows its own UPI app chooser (M01) for a upi:// navigation.
-    if (platform === 'android') window.location.href = res.upiLink;
+    // Android: the OS shows its own UPI app chooser (M01) for a upi:// navigation. Chrome may
+    // block this after the await (no user activation); "Open UPI app" below is the fallback.
+    if (platform === 'android') openUpiLink(res.upiLink);
   });
 
   const paid = () => {
     if (payment) router.push(thankYouHref(payment.amount));
   };
   const close = () => setPayment(null);
-  const androidOpened = payment?.platform === 'android';
 
   return (
     <>
@@ -111,13 +124,18 @@ export function FundForm() {
           fieldId={form.fieldId}
           focusKey={form.failedSubmits}
         />
-        <Field label="Name" autoComplete="name" {...form.field('name')} error={errors.name} />
+        <Field
+          label="Name"
+          autoComplete="name"
+          {...edited(form.field('name'))}
+          error={errors.name}
+        />
         <Field
           label="Contact number"
           type="tel"
           inputMode="tel"
           autoComplete="tel"
-          {...form.field('phone')}
+          {...edited(form.field('phone'))}
           error={errors.phone}
         />
         <ChipGroup
@@ -144,7 +162,10 @@ export function FundForm() {
           name="showOnWall"
           label="Show my name on the sponsor wall"
           checked={values.showOnWall === true}
-          onChange={(checked) => setValue('showOnWall', checked)}
+          onChange={(checked) => {
+            resetHandoff();
+            setValue('showOnWall', checked);
+          }}
         />
         {/* Honeypot: invisible to people, tempting to bots. */}
         <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
@@ -153,9 +174,12 @@ export function FundForm() {
             <input tabIndex={-1} autoComplete="off" {...form.field('website')} />
           </label>
         </div>
-        {androidOpened ? (
+        {payment?.platform === 'android' ? (
           <div className="flex flex-col items-center gap-xs">
-            <Button className="w-full" onClick={paid}>
+            <a href={payment.upiLink} className={buttonClass('primary', 'w-full')}>
+              Open UPI app
+            </a>
+            <Button variant="text" className="min-h-[44px] w-full" onClick={paid}>
               I&apos;ve paid
             </Button>
             <Button variant="text" className="min-h-[44px] px-xs py-[10px]" onClick={close}>

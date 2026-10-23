@@ -38,7 +38,10 @@ test.describe('desktop', () => {
     const card = page.getByRole('region', { name: 'Or scan to pay right now' });
     expect(await decodeQr(card.getByRole('img', { name: /QR code/ }))).toBe(UPI_BASE);
     await card.getByRole('button', { name: 'Copy UPI ID' }).click();
-    await expect(card.getByRole('button', { name: 'Copied' })).toBeVisible();
+    await expect(card.getByRole('status')).toHaveText('Copied');
+    await expect(card).toContainText('Add your details on the right so StepQ', {
+      useInnerText: true,
+    });
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('bhakti0parmar1@oksbi');
   });
 
@@ -169,10 +172,27 @@ test.describe('Android', () => {
     expect(link).toContain('am=501.00');
     expect(link).toContain('tn=StepQ%20');
     await expect(page.getByRole('dialog')).toHaveCount(0);
+    // If Chrome blocked the automatic hand-off, the same link is one tap away.
+    await expect(page.getByRole('link', { name: 'Open UPI app' })).toHaveAttribute('href', link);
+    expect(await readCollection('backings')).toHaveLength(1);
 
     await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
     await page.getByRole('button', { name: "I've paid" }).click();
     await expect(page).toHaveURL(/\/fund\/thank-you\?amount=501$/);
+  });
+});
+
+test.describe('phone layout', () => {
+  test.skip(({ isMobile }) => !isMobile, 'phone layout');
+
+  test('the form comes before the scan card, whose copy points up', async ({ page }) => {
+    await page.goto('/fund');
+    const formBox = await form(page).boundingBox();
+    const card = page.getByRole('region', { name: 'Or scan to pay right now' });
+    const cardBox = await card.boundingBox();
+    expect(cardBox!.y).toBeGreaterThan(formBox!.y + formBox!.height);
+    await expect(card).toContainText('Add your details above so StepQ', { useInnerText: true });
+    await expect(card).not.toContainText('on the right', { useInnerText: true });
   });
 });
 
