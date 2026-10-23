@@ -8,7 +8,7 @@ import { Field } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { ApiFieldError, call, GENERIC_ERROR } from '@/lib/api';
-import { replaceModalParam, useModalParam } from '@/lib/useModalParam';
+import { removeParams, replaceModalParam, useModalParam } from '@/lib/useModalParam';
 import { USERNAME_MESSAGES, useUsernameCheck, type UsernameCheck } from './useUsernameCheck';
 import { useWaitlist } from './WaitlistState';
 
@@ -22,16 +22,27 @@ const TITLE_ID = 'reserve-title';
  */
 export function ReserveUsernameModal() {
   const { isOpen, close, params } = useModalParam('reserve');
-  const { join, loaded, setJoin } = useWaitlist();
-  const linkToken = params.get('token');
-  const mode = linkToken
-    ? 'link'
-    : join?.status === 'existing'
-      ? 'existing'
-      : join?.status === 'joined'
-        ? 'joined'
-        : null;
-  const token = linkToken ?? (mode === 'joined' ? join?.reserveToken : undefined);
+  const { join, loaded, setJoin, setReservation } = useWaitlist();
+  // The emailed token is captured once and taken out of the URL right away.
+  const urlToken = params.get('token');
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isOpen || !urlToken) return;
+    setLinkToken(urlToken);
+    removeParams(['token']);
+  }, [isOpen, urlToken]);
+  useEffect(() => {
+    if (!isOpen) setLinkToken(null);
+  }, [isOpen]);
+  const mode =
+    linkToken || urlToken
+      ? 'link'
+      : join?.status === 'existing'
+        ? 'existing'
+        : join?.status === 'joined'
+          ? 'joined'
+          : null;
+  const token = linkToken ?? urlToken ?? (mode === 'joined' ? join?.reserveToken : undefined);
 
   // Nothing to show (e.g. a stale ?modal=reserve in a new tab): drop the param.
   useEffect(() => {
@@ -74,7 +85,9 @@ export function ReserveUsernameModal() {
               token={token}
               withHeading={mode === 'joined'}
               onReserved={(username) => {
-                if (join && mode === 'joined') setJoin({ ...join, username });
+                const own = mode === 'joined' && join ? join : null;
+                if (own) setJoin({ ...own, username });
+                setReservation({ username, ...(own ? { email: own.email } : {}) });
                 replaceModalParam('reserved', { u: username }, ['token']);
               }}
               onLater={() => close(['token'])}

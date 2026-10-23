@@ -5,8 +5,17 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 
 export type JoinResult = Api['joinWaitlist']['out'] & { username?: string };
 
+/** A reservation completed in this page session (memory only, never restored from storage). */
+export interface Reservation {
+  username: string;
+  /** Only set when W02 was reached by joining in this session, so it is the person's own. */
+  email?: string;
+}
+
 interface WaitlistState {
   join: JoinResult | null;
+  reservation: Reservation | null;
+  setReservation: (r: Reservation) => void;
   /** True once the saved result (if any) has been read from sessionStorage. */
   loaded: boolean;
   setJoin: (join: JoinResult) => void;
@@ -31,6 +40,7 @@ function read(): JoinResult | null {
 export function WaitlistProvider({ children }: { children: ReactNode }) {
   const [join, setJoinState] = useState<JoinResult | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [reservation, setReservation] = useState<Reservation | null>(null);
 
   useEffect(() => {
     setJoinState((current) => current ?? read());
@@ -46,7 +56,11 @@ export function WaitlistProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  return <Ctx.Provider value={{ join, loaded, setJoin }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ join, loaded, setJoin, reservation, setReservation }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export function useWaitlist(): WaitlistState {

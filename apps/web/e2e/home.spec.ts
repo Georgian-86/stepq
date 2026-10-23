@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { actionTokenFromMail, readDoc, readMail, resetEmulators } from './helpers/emulator';
+import {
+  actionTokenFromMail,
+  readDoc,
+  readMail,
+  resetEmulators,
+  writeDoc,
+} from './helpers/emulator';
 
 test.beforeEach(async () => {
   await resetEmulators();
@@ -7,7 +13,7 @@ test.beforeEach(async () => {
 
 const card = (page: Page) => page.locator('#waitlist');
 const liveCount = (page: Page) =>
-  page.getByRole('status').filter({ hasText: 'people have joined' });
+  page.getByRole('status').filter({ hasText: 'joined the waitlist' });
 // A closing modal stays in the DOM for its exit animation, so dialogs are found by name.
 const w02 = (page: Page) => page.getByRole('dialog', { name: "You're on the list!" });
 const w03 = (page: Page, name: string) => page.getByRole('dialog', { name: `@${name} is yours` });
@@ -22,7 +28,9 @@ async function join(page: Page, name: string, email: string) {
 }
 
 async function waitForLiveCount(page: Page) {
-  await expect(liveCount(page)).toHaveText(/^\d[\d,]* people have joined the waitlist$/);
+  await expect(liveCount(page)).toHaveText(
+    /^\d[\d,]* (people have|person has) joined the waitlist$/,
+  );
 }
 
 test('the live count updates when someone joins in another browser', async ({ page, browser }) => {
@@ -37,7 +45,7 @@ test('the live count updates when someone joins in another browser', async ({ pa
   await expect(w02(page2)).toContainText("You're #1.");
   await other.close();
 
-  await expect(liveCount(page)).toHaveText('1 people have joined the waitlist');
+  await expect(liveCount(page)).toHaveText('1 person has joined the waitlist');
 });
 
 test('join → reserve a username → W03; a second person sees it as taken', async ({
@@ -110,7 +118,12 @@ test('joining again with the same email shows the position and emails a reserve 
     .toBe('sent');
 
   // The emailed link opens W02 with that token.
-  await page.goto(`/?modal=reserve&token=${encodeURIComponent(actionTokenFromMail(mail!))}`);
+  const res = await page.goto(
+    `/?modal=reserve&token=${encodeURIComponent(actionTokenFromMail(mail!))}`,
+  );
+  expect(res?.headers()['referrer-policy']).toBe('same-origin');
+  // The one-time token leaves the address bar at once; W02 keeps it in memory.
+  await expect(page).toHaveURL(/\/\?modal=reserve$/);
   const fromLink = page.getByRole('dialog', { name: 'Reserve your username' });
   await fromLink.getByLabel('Username').fill('riya_walks');
   await expect(fromLink.getByText('Available', { exact: true })).toBeVisible();
@@ -167,4 +180,46 @@ test('/join keeps ref and UTM params and stores them as the source', async ({ pa
   expect(entry?.source).toContain('ref=abc');
   expect(entry?.source).toContain('utm_source=ig');
   expect(entry?.source).not.toContain('x=1');
+});
+
+test('the live count pill does not change size when a large count arrives (390 px)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await writeDoc('public/stats', { waitlistCount: 1234567 });
+  // Hold Firestore's listen channel so the pre-snapshot state can be measured.
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  await page.route('**/google.firestore.v1.Firestore/Listen/**', async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await page.goto('/');
+  const pill = page.locator('[data-live-pill]');
+  await expect(pill).toBeAttached();
+  await expect(pill).toBeHidden(); // laid out but invisible
+  await expect(pill.locator('xpath=..').getByRole('status')).toHaveText('');
+  const before = await pill.boundingBox();
+
+  release();
+  await expect(liveCount(page)).toHaveText('12,34,567 people have joined the waitlist');
+  await expect(pill).toBeVisible();
+  const after = await pill.boundingBox();
+  expect(after!.width).toBeCloseTo(before!.width, 0);
+  expect(after!.height).toBeCloseTo(before!.height, 0);
+
+  // A later change ("1" → many, roll included) keeps the size too.
+  await writeDoc('public/stats', { waitlistCount: 1 });
+  await expect(liveCount(page)).toHaveText('1 person has joined the waitlist');
+  const one = await pill.boundingBox();
+  expect(one!.width).toBeCloseTo(before!.width, 0);
+  expect(one!.height).toBeCloseTo(before!.height, 0);
+});
+
+test('a bare /?modal=reserved link shows nothing and is cleaned up', async ({ page }) => {
+  await page.goto('/?modal=reserved&u=admin');
+  await waitForLiveCount(page);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByText('@admin is yours')).toHaveCount(0);
 });

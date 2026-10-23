@@ -50,6 +50,18 @@ export function replaceModalParam(
 }
 
 /**
+ * Removes query params from the current entry without navigating (e.g. a one-time token that
+ * should not stay in the address bar, history or a Referer). History state is kept as is.
+ */
+export function removeParams(keys: string[]) {
+  const url = new URL(window.location.href);
+  if (!keys.some((k) => url.searchParams.has(k))) return;
+  for (const k of keys) url.searchParams.delete(k);
+  window.history.replaceState(window.history.state, '', url);
+  window.dispatchEvent(new Event(CHANGE));
+}
+
+/**
  * A modal addressed by `?modal=<name>`, so it can be linked and the back button closes it.
  * Reacts to `open()`, Back/Forward and Next navigations (`<Link href="?modal=…">`,
  * `router.push`) via `useSearchParams`. Because of that, a component using this hook must

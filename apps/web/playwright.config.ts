@@ -39,7 +39,8 @@ export default defineConfig({
     command: `pnpm build && pnpm start -p ${PORT}`,
     url: BASE_URL,
     timeout: 300_000,
-    reuseExistingServer: !process.env.CI,
+    // Always a fresh build: a leftover server would test stale code.
+    reuseExistingServer: false,
     env: {
       NEXT_PUBLIC_USE_EMULATORS: '1',
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'demo-stepq',

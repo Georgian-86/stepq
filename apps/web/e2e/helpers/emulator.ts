@@ -47,6 +47,11 @@ export async function readDoc<T = Record<string, unknown>>(path: string): Promis
   return snap.exists ? (snap.data() as T) : null;
 }
 
+/** Writes (merges) one Firestore document, e.g. to seed `public/stats`. */
+export async function writeDoc(path: string, data: Record<string, unknown>): Promise<void> {
+  await db().doc(path).set(data, { merge: true });
+}
+
 /** The signed `token` from a mail's action link (reserveUrl / approveUrl / verifyUrl). */
 export function actionTokenFromMail(mail: MailDoc): string {
   for (const key of ['reserveUrl', 'approveUrl', 'verifyUrl']) {

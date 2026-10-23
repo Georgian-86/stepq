@@ -6,37 +6,49 @@ import { useReducedMotion } from '@/lib/useReducedMotion';
 import { useCountUp } from './useCountUp';
 
 const format = (n: number) => n.toLocaleString('en-IN');
+const ONE = 'person has joined the waitlist';
+const MANY = 'people have joined the waitlist';
+
+export const liveCountSentence = (n: number) => `${format(n)} ${n === 1 ? ONE : MANY}`;
 
 /**
  * Live waitlist count (W01 `9:112`), always the real `public/stats.waitlistCount`. The pill
- * keeps its space but stays invisible until the first snapshot (never a sample number). The
- * number rolls to new values; screen readers get one polite sentence per change.
+ * is laid out in full but invisible until the first snapshot (never a sample number), and
+ * its size does not depend on the value: the number sits in a fixed tabular slot sized for
+ * 7 digits, and both sentence endings share one grid cell. The number rolls to new values;
+ * screen readers get one polite sentence per change.
  */
 export function LiveCount() {
   const stats = usePublicDoc<{ waitlistCount?: number }>('stats');
   const count = stats === undefined ? undefined : (stats?.waitlistCount ?? 0);
   const reduced = useReducedMotion();
   const shown = useCountUp(count, reduced);
-  const ready = count !== undefined;
+  const ready = count !== undefined && shown !== undefined;
+  const one = count === 1;
 
   return (
     <div>
       <p role="status" aria-atomic="true" className="sr-only">
-        {ready ? `${format(count)} people have joined the waitlist` : ''}
+        {count !== undefined ? liveCountSentence(count) : ''}
       </p>
       <div
         data-live-pill
         aria-hidden="true"
-        className={`inline-flex max-w-full items-center gap-s rounded-l bg-white px-m py-[12px] sm:gap-[12px] sm:rounded-pill sm:px-[18px] ${
+        className={`inline-flex max-w-full items-center gap-[12px] rounded-l bg-white px-m py-[12px] sm:rounded-pill sm:px-[18px] ${
           ready ? 'animate-fade-in' : 'invisible'
         }`}
       >
         <Icon name="live-dot-deep" className="live-dot" />
-        <span className="flex flex-wrap items-baseline gap-x-s sm:gap-x-[12px]">
-          <span className="type-web-h3 min-w-[1ch] text-ink tabular-nums">
-            {ready && shown !== undefined ? format(shown) : '\u00a0'}
+        {/* Phones: number above the sentence; wider: one line. Same box either way. */}
+        <span className="flex flex-col sm:flex-row sm:items-baseline sm:gap-[12px]">
+          {/* The ::before sizer reserves 7 digits in en-IN grouping ("00,00,000"). */}
+          <span className="type-web-h3 grid text-ink tabular-nums before:invisible before:col-start-1 before:row-start-1 before:content-['00,00,000'] sm:justify-items-end">
+            <span className="col-start-1 row-start-1">{ready ? format(shown) : ''}</span>
           </span>
-          <span className="type-web-body text-ink">people have joined the waitlist</span>
+          <span className="type-web-body grid text-ink">
+            <span className={`col-start-1 row-start-1 ${one ? '' : 'invisible'}`}>{ONE}</span>
+            <span className={`col-start-1 row-start-1 ${one ? 'invisible' : ''}`}>{MANY}</span>
+          </span>
         </span>
         <span className="type-web-small-strong rounded-pill bg-leaf-soft px-s py-[2px] text-deep">
           Live

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+let warned = false;
+
 /**
  * Live data of a public Firestore doc (`public/stats`, `public/backers`): `undefined` until the
  * first snapshot (or if the listener fails), `null` when the doc does not exist. Firebase is
@@ -13,16 +15,20 @@ export function usePublicDoc<T extends object>(id: 'stats' | 'backers'): T | nul
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
-    void Promise.all([import('firebase/firestore'), import('./firebase')]).then(
-      ([{ doc, onSnapshot }, { db }]) => {
+    Promise.all([import('firebase/firestore'), import('./firebase')])
+      .then(([{ doc, onSnapshot }, { db }]) => {
         if (cancelled) return;
         unsubscribe = onSnapshot(
           doc(db, 'public', id),
           (snap) => setData(snap.exists() ? (snap.data() as T) : null),
           () => {}, // offline / blocked: keep showing nothing rather than a wrong number
         );
-      },
-    );
+      })
+      .catch((err: unknown) => {
+        // Chunk failed to load (offline, deploy in between): show nothing, log once.
+        if (!warned) console.warn('Live data unavailable', err);
+        warned = true;
+      });
     return () => {
       cancelled = true;
       unsubscribe?.();

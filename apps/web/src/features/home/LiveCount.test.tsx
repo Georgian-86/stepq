@@ -53,6 +53,14 @@ describe('LiveCount', () => {
     expect(screen.getByText('Live')).toBeInTheDocument();
   });
 
+  it('says "1 person has" for exactly one, "people have" otherwise', async () => {
+    render(<LiveCount />);
+    await act(async () => emit!({ waitlistCount: 1 }));
+    expect(screen.getByRole('status')).toHaveTextContent(/^1 person has joined the waitlist$/);
+    await act(async () => emit!({ waitlistCount: 2 }));
+    expect(screen.getByRole('status')).toHaveTextContent(/^2 people have joined the waitlist$/);
+  });
+
   it('treats a missing stats doc as zero', async () => {
     render(<LiveCount />);
     await act(async () => emit!(null));

@@ -10,11 +10,20 @@ import { useWaitlist } from './WaitlistState';
 const TITLE_ID = 'reserved-title';
 const INVITE_URL = 'https://stepq.in/join';
 
-/** W03 Username reserved (`9:330`), at `?modal=reserved&u=<name>`. */
+/**
+ * W03 Username reserved (`9:330`), at `?modal=reserved&u=<name>`. Shown only right after a
+ * reservation in this page session, so the URL alone cannot claim a name is someone's.
+ */
 export function UsernameReservedModal() {
   const { isOpen, close, params } = useModalParam('reserved');
-  const { join } = useWaitlist();
-  const username = params.get('u');
+  const { reservation } = useWaitlist();
+  const u = params.get('u');
+  const username = reservation && reservation.username === u ? u : null;
+
+  // A bare or stale ?modal=reserved link: drop it.
+  useEffect(() => {
+    if (isOpen && !username) close(['u']);
+  }, [isOpen, username, close]);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -44,8 +53,8 @@ export function UsernameReservedModal() {
           @{username} is yours
         </h2>
         <p className="type-web-body text-muted">
-          {join?.email
-            ? `It'll be waiting for you when you sign up with ${join.email}.`
+          {reservation?.email
+            ? `It'll be waiting for you when you sign up with ${reservation.email}.`
             : "It'll be waiting for you when you sign up."}
         </p>
         <button
