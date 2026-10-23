@@ -1,4 +1,4 @@
-import { firstName } from '@stepq/core';
+import { firstName, wallName } from '@stepq/core';
 import { actionTokenInput, type Api, type ActionKind } from '@stepq/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
@@ -13,12 +13,20 @@ import { parseOrThrow } from '../lib/validate';
 type Req = Pick<CallableRequest, 'data' | 'rawRequest'>;
 
 /** Kinds these callables act on; 'reserve' tokens belong to the waitlist flow. */
-const ACTION_KINDS = ['approveAmbassador'] as const satisfies readonly ActionKind[];
+const ACTION_KINDS = ['approveAmbassador', 'verifyBacking'] as const satisfies readonly ActionKind[];
 type HandledKind = (typeof ACTION_KINDS)[number];
 
 const notFound = () => new HttpsError('not-found', 'This link is no longer valid.');
 
 type Application = { name: string; email: string; city: string; status: 'pending' | 'approved' };
+
+type Backing = {
+  name: string;
+  amount: number;
+  reference: string;
+  showOnWall: boolean;
+  status: 'pending' | 'verified';
+};
 
 async function describe(
   kind: HandledKind,
@@ -32,6 +40,15 @@ async function describe(
       return {
         summary: `Approve ${a.name} (${a.city}) as an ambassador?`,
         done: a.status === 'approved',
+      };
+    }
+    case 'verifyBacking': {
+      const snap = await db().doc(`backings/${id}`).get();
+      if (!snap.exists) throw notFound();
+      const b = snap.data() as Backing;
+      return {
+        summary: `Verify ₹${b.amount.toLocaleString('en-IN')} from ${wallName(b.name)} (ref ${b.reference})?`,
+        done: b.status === 'verified',
       };
     }
     default: {
@@ -61,6 +78,26 @@ async function confirm(kind: HandledKind, id: string): Promise<void> {
             ...(AMBASSADOR_KIT_URL.value() ? { kitUrl: AMBASSADOR_KIT_URL.value() } : {}),
           },
         });
+      });
+      return;
+    }
+    case 'verifyBacking': {
+      await db().runTransaction(async (tx) => {
+        const ref = db().doc(`backings/${id}`);
+        const wallRef = db().doc('public/backers');
+        const [snap, wall] = await Promise.all([tx.get(ref), tx.get(wallRef)]);
+        if (!snap.exists) throw notFound();
+        const b = snap.data() as Backing;
+        if (b.status === 'verified') return;
+        tx.update(ref, { status: 'verified', verifiedAt: FieldValue.serverTimestamp() });
+        if (b.showOnWall) {
+          const names = wall.exists ? ((wall.data()?.names as string[] | undefined) ?? []) : [];
+          tx.set(
+            wallRef,
+            { names: [...names, wallName(b.name)], updatedAt: FieldValue.serverTimestamp() },
+            { merge: true },
+          );
+        }
       });
       return;
     }

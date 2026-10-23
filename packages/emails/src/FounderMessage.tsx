@@ -1,4 +1,5 @@
-import { CheckRow, Cta, Heading, Layout, Muted, P, Strong } from './Layout';
+import { Text } from '@react-email/components';
+import { CheckRow, Cta, Heading, Layout, P, Strong, layoutStyles } from './Layout';
 
 export type FounderMessageProps = {
   name: string;
@@ -23,7 +24,7 @@ export function FounderMessage(p: FounderMessageProps & { siteUrl: string }) {
       {p.phone ? <CheckRow>{`Phone: ${p.phone}`}</CheckRow> : null}
       <CheckRow>{`Topic: ${p.topicLabel}`}</CheckRow>
       <Cta href={`mailto:${p.email}`}>{`Reply to ${firstName(p.name)}`}</Cta>
-      <Muted>{`“${p.message}”`}</Muted>
+      <Text style={{ ...layoutStyles.muted, whiteSpace: 'pre-wrap' }}>{`“${p.message}”`}</Text>
     </Layout>
   );
 }
