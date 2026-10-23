@@ -1,9 +1,10 @@
 import { FieldValue, type Transaction } from 'firebase-admin/firestore';
 import { Resend } from 'resend';
-import { MAIL_FROM, MAIL_TRANSPORT, RESEND_API_KEY } from '../config';
+import { render, type Rendered, type TemplateName } from '@stepq/emails';
+import { MAIL_FROM, MAIL_TRANSPORT, RESEND_API_KEY, SITE_URL } from '../config';
 import { db } from './admin';
 
-export type TemplateName = string;
+export type { Rendered, TemplateName };
 export type MailInput = {
   to: string;
   subject: string;
@@ -11,19 +12,12 @@ export type MailInput = {
   props: object;
   replyTo?: string;
 };
-export type Rendered = { subject: string; html: string; text: string };
 export type OutgoingMail = Rendered & { to: string; replyTo?: string };
 export type MailTransport = (mail: OutgoingMail) => Promise<void>;
 
-// Stub until Task 7 swaps this single import for `@stepq/emails`.
-export function render(template: TemplateName, props: Record<string, unknown>): Rendered {
-  const json = JSON.stringify(props, null, 2);
-  const escaped = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return {
-    subject: typeof props.subject === 'string' ? props.subject : template,
-    html: `<pre>${escaped}</pre>`,
-    text: json,
-  };
+/** Renders a queued mail doc's template; `siteUrl` hosts the Piko PNGs. */
+export function renderMail(template: string, props: object): Promise<Rendered> {
+  return render(template as TemplateName, props as never, { siteUrl: SITE_URL.value() });
 }
 
 let transport: MailTransport | undefined;

@@ -1,0 +1,28 @@
+{
+  "name": "@stepq/emails",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "build:png": "node scripts/build-png.mjs"
+  },
+  "dependencies": {
+    "@react-email/components": "^0.0.41",
+    "@react-email/render": "^1.1.2",
+    "@stepq/tokens": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@stepq/brand": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "vitest": "^3.0.0"
+  }
+}

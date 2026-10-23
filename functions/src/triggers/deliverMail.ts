@@ -4,7 +4,7 @@ import { logger } from 'firebase-functions/v2';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { REGION, RESEND_API_KEY } from '../config';
 import { db } from '../lib/admin';
-import { getMailTransport, render } from '../lib/mail';
+import { getMailTransport, renderMail } from '../lib/mail';
 
 export const MAX_ATTEMPTS = 6;
 export const MAX_AGE_MS = 24 * 3600_000;
@@ -22,9 +22,10 @@ export async function processMail(ref: DocumentReference): Promise<void> {
   try {
     const transport = getMailTransport();
     if (transport) {
-      const rendered = render(mail.template, { ...mail.props, subject: mail.subject });
+      const rendered = await renderMail(mail.template, mail.props ?? {});
       await transport({
         ...rendered,
+        subject: mail.subject || rendered.subject,
         to: mail.to,
         ...(mail.replyTo ? { replyTo: mail.replyTo } : {}),
       });

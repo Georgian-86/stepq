@@ -12,8 +12,8 @@ async function queue(extra: Record<string, unknown> = {}) {
   await ref.set({
     to: 'riya@example.com',
     subject: 'Hi',
-    template: 'welcome',
-    props: { name: 'Riya' },
+    template: 'reserveLink',
+    props: { firstName: 'Riya', position: 1, reserveUrl: 'https://stepq.in/reserve?t=1' },
     status: 'queued',
     attempts: 0,
     createdAt: Timestamp.now(),
@@ -35,6 +35,8 @@ describe.skipIf(!hasEmulator)('deliverMail', () => {
     expect(d.sentAt).toBeTruthy();
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ to: 'riya@example.com', replyTo: 'a@b.in', subject: 'Hi' });
+    expect(sent[0]!.html).toContain('https://stepq.in/reserve?t=1');
+    expect(sent[0]!.text).toContain('Riya');
   });
 
   it('does not send twice if invoked again after sent', async () => {
@@ -92,14 +94,14 @@ describe.skipIf(!hasEmulator)('deliverMail', () => {
   });
 
   it('queueMail(null) writes a queued doc and resolves after the write', async () => {
-    await queueMail(null, { to: 'null@b.in', subject: 's', template: 'welcome', props: {} });
+    await queueMail(null, { to: 'null@b.in', subject: 's', template: 'reserveLink', props: {} });
     const snap = await db().collection('mail').where('to', '==', 'null@b.in').limit(1).get();
     expect(snap.docs[0]!.data()).toMatchObject({ status: 'queued', attempts: 0 });
   });
 
   it('queueMail writes a queued doc inside a transaction', async () => {
     const id = await db().runTransaction(async (tx) => {
-      queueMail(tx, { to: 'a@b.in', subject: 's', template: 'welcome', props: { x: 1 } });
+      queueMail(tx, { to: 'a@b.in', subject: 's', template: 'reserveLink', props: {} });
       return 'tx';
     });
     expect(id).toBe('tx');

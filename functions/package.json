@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.0",
+    "@stepq/emails": "workspace:*",
     "@stepq/schemas": "workspace:*",
     "@types/node": "^22.20.5",
     "esbuild": "^0.25.12",
