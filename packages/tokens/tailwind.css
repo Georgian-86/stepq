@@ -1,0 +1,224 @@
+/* Hand-written; tokens.test.ts asserts colours stay in sync with src/tokens.ts. Tailwind CSS v4. */
+@theme {
+  --color-leaf: #22C55E;
+  --color-deep: #0A7F3F;
+  --color-mango: #FFB627;
+  --color-tomato: #F0533A;
+  --color-ink: #0E2A1A;
+  --color-white: #FFFFFF;
+  --color-mint: #EEF6F0;
+  --color-line: #DCE7DF;
+  --color-muted: #55695D;
+  --color-mango-soft: #FFF3D6;
+  --color-tomato-soft: #FDE6E1;
+  --color-tomato-text: #B8321C;
+  --color-leaf-soft: #DDF7E6;
+  --color-page: #F6F9F6;
+
+  --font-display: 'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Nunito', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-s: 12px;
+  --radius-m: 16px;
+  --radius-l: 24px;
+  --radius-pill: 999px;
+
+  --spacing-xs: 4px;
+  --spacing-s: 8px;
+  --spacing-m: 16px;
+  --spacing-l: 24px;
+  --spacing-xl: 32px;
+}
+
+.type-web-hero {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 72px;
+  line-height: 76px;
+  letter-spacing: -1.5px;
+}
+
+.type-web-h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 48px;
+  line-height: 54px;
+  letter-spacing: 0px;
+}
+
+.type-web-h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 36px;
+  line-height: 42px;
+  letter-spacing: -0.6px;
+}
+
+.type-web-h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: 0px;
+}
+
+.type-web-lead {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 30px;
+  letter-spacing: 0px;
+}
+
+.type-web-body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 26px;
+  letter-spacing: 0px;
+}
+
+.type-web-body-strong {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0px;
+}
+
+.type-web-small {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0px;
+}
+
+.type-web-small-strong {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0px;
+}
+
+.type-web-number {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 44px;
+  letter-spacing: 0px;
+}
+
+.type-app-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 40px;
+  letter-spacing: 0px;
+}
+
+.type-app-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 34px;
+  letter-spacing: 0px;
+}
+
+.type-app-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 26px;
+  letter-spacing: 0px;
+}
+
+.type-app-subheading {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+  line-height: 22px;
+  letter-spacing: 0px;
+}
+
+.type-app-number-xl {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 52px;
+  line-height: 56px;
+  letter-spacing: 0px;
+}
+
+.type-app-number-l {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 34px;
+  letter-spacing: 0px;
+}
+
+.type-app-number-m {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22px;
+  letter-spacing: 0px;
+}
+
+.type-app-body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 22px;
+  letter-spacing: 0px;
+}
+
+.type-app-body-strong {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 22px;
+  letter-spacing: 0px;
+}
+
+.type-app-small {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0px;
+}
+
+.type-app-small-strong {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0px;
+}
+
+.type-label {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.type-button {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: 0px;
+}
+
+.type-chip {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0px;
+}

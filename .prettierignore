@@ -2,3 +2,4 @@ pnpm-lock.yaml
 docs/
 .superpowers/
 .claude/
+packages/tokens/tailwind.css
