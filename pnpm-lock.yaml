@@ -48,6 +48,9 @@ importers:
       '@firebase/rules-unit-testing':
         specifier: ^4.0.0
         version: 4.0.1(firebase@11.10.0)
+      '@stepq/core':
+        specifier: workspace:*
+        version: link:../packages/core
       '@stepq/emails':
         specifier: workspace:*
         version: link:../packages/emails
