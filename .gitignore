@@ -1,2 +1,15 @@
 .superpowers/
 node_modules/
+.next/
+dist/
+coverage/
+.turbo/
+*.log
+.env*
+!.env.example
+firebase-debug.log*
+firestore-debug.log
+ui-debug.log
+.firebase/
+playwright-report/
+test-results/
