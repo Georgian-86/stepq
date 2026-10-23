@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "stepq-prod",
+    "dev": "demo-stepq"
+  }
+}
