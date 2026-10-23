@@ -8,8 +8,8 @@ const formatMb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
 
 /**
  * Résumé picker (W04 "Resume upload"): mint row with upload icon, file name, the
- * "PDF, up to 5 MB" hint and × to clear. Type and size are checked here; the parent
- * receives `null` plus an error message when the file is rejected.
+ * "PDF, up to 5 MB" hint and × to clear. Name/type and size are checked here; a rejected
+ * file only reaches `onReject` ("Upload a PDF up to 5 MB").
  */
 export function FileDrop({
   label,
@@ -41,12 +41,10 @@ export function FileDrop({
     const file = e.target.files?.[0] ?? null;
     e.target.value = '';
     if (!file) return;
-    if (file.type !== accept && !file.name.toLowerCase().endsWith('.pdf')) {
-      onReject?.('Upload a PDF');
-      return;
-    }
-    if (file.size > maxBytes) {
-      onReject?.(`Resume must be under ${formatMb(maxBytes)}`);
+    const isPdf =
+      file.name.toLowerCase().endsWith('.pdf') && (file.type === accept || file.type === '');
+    if (!isPdf || file.size > maxBytes) {
+      onReject?.(`Upload a PDF up to ${formatMb(maxBytes)}`);
       return;
     }
     onChange(file);

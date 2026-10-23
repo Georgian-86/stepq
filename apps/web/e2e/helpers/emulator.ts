@@ -47,6 +47,14 @@ export async function readDoc<T = Record<string, unknown>>(path: string): Promis
   return snap.exists ? (snap.data() as T) : null;
 }
 
+/** Every document in a top-level collection, with its id. */
+export async function readCollection<T = Record<string, unknown>>(
+  name: string,
+): Promise<(T & { id: string })[]> {
+  const snap = await db().collection(name).get();
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as T) }));
+}
+
 /** Writes (merges) one Firestore document, e.g. to seed `public/stats`. */
 export async function writeDoc(path: string, data: Record<string, unknown>): Promise<void> {
   await db().doc(path).set(data, { merge: true });

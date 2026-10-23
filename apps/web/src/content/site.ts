@@ -7,7 +7,11 @@ export type Role = (typeof ROLES)[number];
  * the UI hides what is missing and `pnpm check:launch` lists it.
  */
 export interface SiteContent {
-  roles: { id: Role; jdUrl: string | null }[];
+  /**
+   * Open roles (W04). `jdSummary` replaces the Figma placeholder text in the open card;
+   * `jdUrl` (a PDF) adds the Download row.
+   */
+  roles: { id: Role; jdUrl: string | null; jdSummary: string | null }[];
   ambassadorEligibility: string | null;
   ambassadorTerms: { title: string; body: string }[] | null;
   socials: { instagram: string | null; linkedin: string | null; youtube: string | null };
@@ -17,10 +21,10 @@ export interface SiteContent {
 
 export const site: SiteContent = {
   roles: [
-    { id: 'marketing', jdUrl: null },
-    { id: 'design', jdUrl: null },
-    { id: 'content', jdUrl: null },
-    { id: 'tech', jdUrl: null },
+    { id: 'marketing', jdUrl: null, jdSummary: null },
+    { id: 'design', jdUrl: null, jdSummary: null },
+    { id: 'content', jdUrl: null, jdSummary: null },
+    { id: 'tech', jdUrl: null, jdSummary: null },
   ],
   ambassadorEligibility: null,
   ambassadorTerms: null,
