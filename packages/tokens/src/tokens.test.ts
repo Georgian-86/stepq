@@ -79,11 +79,27 @@ describe('typeStyles', () => {
       'button',
       'chip',
     ]) {
-      expect(css).toContain(`.type-${c} {`);
+      expect(css).toContain(`@utility type-${c} {`);
+    }
+  });
+  it('type styles are Tailwind utilities so variants (lg:type-web-hero) work', () => {
+    // Plain unlayered `.type-*` rules would beat every utility and could not take variants.
+    expect(css).not.toMatch(/^\.type-/m);
+  });
+  it('every typeStyle has a utility whose values match', () => {
+    for (const [key, t] of Object.entries(typeStyles)) {
+      const cls = key.replace('/', '-').replace(/^app-(label|button)$/, '$1');
+      if (!css.includes(`@utility type-${cls} {`)) continue;
+      const b = css.split(`@utility type-${cls} {`)[1]!.split('}')[0]!;
+      expect(b, cls).toContain(`font-size: ${t.size}px;`);
+      expect(b, cls).toContain(`line-height: ${t.lineHeight}px;`);
+      expect(b, cls).toContain(`font-weight: ${t.weight};`);
+      expect(b, cls).toContain(`letter-spacing: ${t.letterSpacing}px;`);
+      expect(b, cls).toContain(t.family === 'Fredoka' ? 'var(--font-display)' : 'var(--font-body)');
     }
   });
   it('utility sizes match typeStyles', () => {
-    const block = (cls: string) => css.split(`.type-${cls} {`)[1]!.split('}')[0]!;
+    const block = (cls: string) => css.split(`@utility type-${cls} {`)[1]!.split('}')[0]!;
     const hero = typeStyles['web/hero']!;
     expect(block('web-hero')).toContain(`font-size: ${hero.size}px;`);
     expect(block('web-hero')).toContain(`line-height: ${hero.lineHeight}px;`);
