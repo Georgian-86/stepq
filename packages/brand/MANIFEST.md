@@ -14,29 +14,35 @@ PNGs come from `get_screenshot` with `maxDimension = ceil(max(width, height))`, 
 
 ## Icons (every `icon/<name>` instance in the W1 frames)
 
-The node id is the first instance found. Some icons appear in several colours; see the note below the table.
+File names are `<icon>-<colour token>.svg`; the token is the Figma colour variable (deep `#0A7F3F`, ink `#0E2A1A`, muted `#55695D`, white).
+Each distinct colour variant found in the frames is exported unmodified; no recolouring. Where one colour appears at several sizes
+(check 16/20/32 px, chev and x 18/20 px) the smallest instance used in the frames is exported and others are listed as notes.
+`IconName` is the set of these file names. Regenerate `src/generated.ts` with `pnpm --filter @stepq/brand generate`.
 
-| Asset                      | Figma node | Instances |
-| -------------------------- | ---------- | --------- |
-| `svg/icons/footprints.svg` | `9:101`    | 1         |
-| `svg/icons/lock.svg`       | `9:163`    | 2         |
-| `svg/icons/target.svg`     | `61:1196`  | 1         |
-| `svg/icons/gift.svg`       | `61:1200`  | 1         |
-| `svg/icons/users.svg`      | `9:186`    | 1         |
-| `svg/icons/briefcase.svg`  | `9:198`    | 1         |
-| `svg/icons/rupee.svg`      | `9:207`    | 1         |
-| `svg/icons/megaphone.svg`  | `9:215`    | 1         |
-| `svg/icons/check.svg`      | `9:307`    | 7         |
-| `svg/icons/share.svg`      | `9:322`    | 1         |
-| `svg/icons/chev.svg`       | `10:152`   | 5         |
-| `svg/icons/chevR.svg`      | `10:687`   | 5         |
-| `svg/icons/file.svg`       | `10:157`   | 1         |
-| `svg/icons/upload.svg`     | `10:212`   | 1         |
-| `svg/icons/x.svg`          | `10:217`   | 2         |
+| Asset                           | Figma node                      | Size |
+| ------------------------------- | ------------------------------- | ---- |
+| `svg/icons/footprints-deep.svg` | `9:101`                         | 18   |
+| `svg/icons/lock-muted.svg`      | `9:163`                         | 16   |
+| `svg/icons/target-deep.svg`     | `61:1196`                       | 26   |
+| `svg/icons/gift-deep.svg`       | `61:1200`                       | 26   |
+| `svg/icons/users-deep.svg`      | `9:186`                         | 26   |
+| `svg/icons/briefcase-ink.svg`   | `9:198`                         | 26   |
+| `svg/icons/rupee-ink.svg`       | `9:207`                         | 26   |
+| `svg/icons/megaphone-ink.svg`   | `9:215`                         | 26   |
+| `svg/icons/check-deep.svg`      | `9:307`                         | 16   |
+| `svg/icons/check-white.svg`     | `10:400` (also `10:853`, 16 px) | 16   |
+| `svg/icons/share-deep.svg`      | `9:322`                         | 18   |
+| `svg/icons/chev-deep.svg`       | `10:152`                        | 18   |
+| `svg/icons/chev-ink.svg`        | `10:208`                        | 20   |
+| `svg/icons/chev-r-muted.svg`    | `10:687`                        | 18   |
+| `svg/icons/file-deep.svg`       | `10:157`                        | 18   |
+| `svg/icons/upload-deep.svg`     | `10:212`                        | 22   |
+| `svg/icons/x-muted.svg`         | `10:217`                        | 18   |
+| `svg/icons/x-ink.svg`           | `10:914`                        | 20   |
 
-The brief's indicative list had `sparkle`, which does not exist in the W1 frames; `footprints`, `share` and `chevR` do and are exported instead.
+The brief's indicative list had `sparkle`, which does not exist in the W1 frames.
 
-Instances whose SVG differs from the exported one (other stroke colour or similar): `lock` `10:406`; `check` `9:317`, `10:400`, `10:797`, `10:801`, `10:805`, `10:853`; `chev` `10:208`; `x` `10:914`.
+Size-only instances not exported (same colour as an exported variant): `check` deep at 32 px `9:317` and 20 px `10:797`, `10:801`, `10:805`; `lock` muted `10:406` (same size, slightly different path coordinates).
 
 ## Figma reference renders (`apps/web/e2e/figma/`)
 
