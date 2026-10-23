@@ -25,7 +25,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - name: Firebase rules tests (emulators)
-        run: pnpm emulators -- "pnpm --filter functions test:emulator"
+        run: pnpm emulators:unit -- "pnpm --filter functions test:emulator"
       - name: E2E (skipped until apps/web exists)
         if: hashFiles('apps/web/package.json') != ''
         run: pnpm e2e

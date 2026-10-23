@@ -1,9 +1,16 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
 
-/** First hop of x-forwarded-for (the original client). */
+/**
+ * Client IP for rate limiting. The leftmost x-forwarded-for hop is supplied by
+ * the client, so use the rightmost non-empty hop (appended by Google's front
+ * end), falling back to the socket address.
+ */
 export function clientIp(req: Pick<CallableRequest, 'rawRequest'>): string {
   const raw = req.rawRequest?.headers?.['x-forwarded-for'];
-  const header = Array.isArray(raw) ? raw[0] : raw;
-  const first = header?.split(',')[0]?.trim();
-  return first || req.rawRequest?.ip || 'unknown';
+  const header = Array.isArray(raw) ? raw.join(',') : raw;
+  const hops = (header ?? '')
+    .split(',')
+    .map((h) => h.trim())
+    .filter(Boolean);
+  return hops[hops.length - 1] || req.rawRequest?.ip || 'unknown';
 }

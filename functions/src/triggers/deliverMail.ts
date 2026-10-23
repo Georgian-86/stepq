@@ -1,5 +1,6 @@
 import type { DocumentReference } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
+import { logger } from 'firebase-functions/v2';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { REGION, RESEND_API_KEY } from '../config';
 import { db } from '../lib/admin';
@@ -35,6 +36,7 @@ export async function processMail(ref: DocumentReference): Promise<void> {
     const createdMs: number =
       mail.createdAt?.toMillis?.() ?? snap.createTime?.toMillis() ?? Date.now();
     if (attempts >= MAX_ATTEMPTS || Date.now() - createdMs >= MAX_AGE_MS) {
+      logger.error('mail delivery gave up', { mailId: ref.id, attempts, lastError });
       await ref.update({ status: 'failed', attempts, lastError });
       return;
     }

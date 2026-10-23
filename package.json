@@ -13,7 +13,8 @@
     "test": "turbo run test",
     "e2e": "turbo run e2e",
     "format": "prettier --write .",
-    "emulators": "firebase emulators:exec --project demo-stepq"
+    "emulators": "firebase emulators:exec --project demo-stepq",
+    "emulators:unit": "firebase emulators:exec --project demo-stepq --only firestore,storage"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

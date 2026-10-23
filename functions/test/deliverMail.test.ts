@@ -91,6 +91,12 @@ describe.skipIf(!hasEmulator)('deliverMail', () => {
     expect((await ref.get()).data()).toMatchObject({ status: 'failed', attempts: 1 });
   });
 
+  it('queueMail(null) writes a queued doc and resolves after the write', async () => {
+    await queueMail(null, { to: 'null@b.in', subject: 's', template: 'welcome', props: {} });
+    const snap = await db().collection('mail').where('to', '==', 'null@b.in').limit(1).get();
+    expect(snap.docs[0]!.data()).toMatchObject({ status: 'queued', attempts: 0 });
+  });
+
   it('queueMail writes a queued doc inside a transaction', async () => {
     const id = await db().runTransaction(async (tx) => {
       queueMail(tx, { to: 'a@b.in', subject: 's', template: 'welcome', props: { x: 1 } });

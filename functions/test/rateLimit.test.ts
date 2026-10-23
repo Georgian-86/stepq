@@ -3,9 +3,9 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 import { enforceRateLimit } from '../src/lib/rateLimit';
 
 const hasEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
-const reqFrom = (ip: string) =>
+const reqFrom = (ip: string, spoof = '9.9.9.9') =>
   ({
-    rawRequest: { headers: { 'x-forwarded-for': `${ip}, 10.0.0.1` } },
+    rawRequest: { headers: { 'x-forwarded-for': `${spoof}, ${ip}` } },
   }) as unknown as CallableRequest;
 
 describe.skipIf(!hasEmulator)('enforceRateLimit', () => {
@@ -17,6 +17,14 @@ describe.skipIf(!hasEmulator)('enforceRateLimit', () => {
       message: 'Too many tries. Please wait a few minutes.',
     });
     await expect(enforceRateLimit(reqFrom('2.2.2.2'), action, 3, 600)).resolves.toBeUndefined();
+  });
+
+  it('ignores a spoofed leading hop', async () => {
+    const action = `spoof-${Math.random()}`;
+    await enforceRateLimit(reqFrom('4.4.4.4', 'a'), action, 1, 600);
+    await expect(enforceRateLimit(reqFrom('4.4.4.4', 'b'), action, 1, 600)).rejects.toMatchObject({
+      code: 'resource-exhausted',
+    });
   });
 
   it('starts a fresh window after it expires', async () => {

@@ -47,9 +47,14 @@ export function getMailTransport(): MailTransport | null {
   };
 }
 
-export function queueMail(tx: Transaction | null, mail: MailInput): void {
+export function queueMail(tx: Transaction, mail: MailInput): void;
+export function queueMail(tx: null, mail: MailInput): Promise<void>;
+export function queueMail(tx: Transaction | null, mail: MailInput): void | Promise<void> {
   const ref = db().collection('mail').doc();
   const doc = { ...mail, status: 'queued', attempts: 0, createdAt: FieldValue.serverTimestamp() };
-  if (tx) tx.set(ref, doc);
-  else void ref.set(doc);
+  if (tx) {
+    tx.set(ref, doc);
+    return;
+  }
+  return ref.set(doc).then(() => undefined);
 }
