@@ -1,0 +1,11 @@
+export const NAV_LINKS = [
+  { href: '/join-the-team', label: 'Join the team' },
+  { href: '/fund', label: 'Fund StepQ' },
+  { href: '/ambassadors', label: 'Ambassadors' },
+] as const;
+
+/** Home waitlist card anchor (Task 13 gives the card `id="waitlist"`). */
+export const WAITLIST_HREF = '/#waitlist';
+
+/** Side padding: 120 px at 1440 → 20 px on phones (spec §8). */
+export const GUTTER = 'px-[20px] md:px-[48px] xl:px-[120px]';

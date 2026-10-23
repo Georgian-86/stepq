@@ -15,3 +15,5 @@ playwright-report/
 test-results/
 functions/lib/
 !functions/.env.demo-stepq
+next-env.d.ts
+*.tsbuildinfo
