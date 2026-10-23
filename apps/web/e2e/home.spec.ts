@@ -223,3 +223,13 @@ test('a bare /?modal=reserved link shows nothing and is cleaned up', async ({ pa
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText('@admin is yours')).toHaveCount(0);
 });
+
+test('desktop pill keeps the dot next to the number (Figma spacing)', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await expect(liveCount(page)).toHaveText('0 people have joined the waitlist');
+  const pill = page.locator('[data-live-pill]');
+  const dot = await pill.locator('.live-dot').boundingBox();
+  const number = await pill.getByText('0', { exact: true }).boundingBox();
+  expect(number!.x - (dot!.x + dot!.width)).toBeLessThanOrEqual(12);
+});
