@@ -46,6 +46,19 @@ The brief's indicative list had `sparkle`, which does not exist in the W1 frames
 
 Size-only instances not exported (same colour as an exported variant): `check` deep at 20 px `10:797`, `10:801`, `10:805`; `lock` muted `10:406` (same size, slightly different path coordinates).
 
+## UPI app marks (M01 `10:668`, sheet rows)
+
+The coloured 32 px circles beside each app in the M01 sheet. Brand colours, not tokens, so they live
+in `svg/upi/` (exported as `upiAppSvg`) instead of `svg/icons/`.
+
+| Asset                 | Figma node | Row           |
+| --------------------- | ---------- | ------------- |
+| `svg/upi/gpay.svg`    | `10:685`   | Google Pay    |
+| `svg/upi/phonepe.svg` | `10:690`   | PhonePe       |
+| `svg/upi/paytm.svg`   | `10:695`   | Paytm         |
+| `svg/upi/bhim.svg`    | `10:700`   | BHIM          |
+| `svg/upi/other.svg`   | `10:705`   | Other UPI app |
+
 ## Figma reference renders (`apps/web/e2e/figma/`)
 
 | File      | Frame node | Frame size    | PNG size    |

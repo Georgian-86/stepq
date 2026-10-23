@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { iconSvg, pikoSvg } from './index';
+import { iconSvg, pikoSvg, upiAppSvg } from './index';
 
 const pkgDir = join(__dirname, '..');
 const figmaDir = join(pkgDir, '../../apps/web/e2e/figma');
@@ -15,6 +15,7 @@ describe('brand SVGs', () => {
   const all = [
     ...Object.entries(pikoSvg).map(([k, v]) => [`piko/${k}`, v] as const),
     ...Object.entries(iconSvg).map(([k, v]) => [`icon/${k}`, v] as const),
+    ...Object.entries(upiAppSvg).map(([k, v]) => [`upi/${k}`, v] as const),
   ];
 
   it('exports the three Piko moods', () => {
@@ -28,6 +29,11 @@ describe('brand SVGs', () => {
         .map((n) => n.replace(/^piko-/, ''))
         .sort(),
     );
+  });
+
+  it('exports the five M01 UPI app marks', () => {
+    expect(Object.keys(upiAppSvg).sort()).toEqual(['bhim', 'gpay', 'other', 'paytm', 'phonepe']);
+    expect(Object.keys(upiAppSvg).sort()).toEqual(svgNames('upi').sort());
   });
 
   it('names icons <icon>-<colour token>', () => {

@@ -68,6 +68,8 @@ export function trapTab(e: KeyboardEvent | ReactKeyboardEvent, root: HTMLElement
  * Dialog over a dimmed page (W02/W03/W07/W10/W16/W17): overlay ink 45 %, 560 px card,
  * radius 28, padding 40, card shadow. Focus is trapped, Esc and overlay click close,
  * focus returns to the opener. Enter: fade + 12 px rise 200 ms; exit 140 ms.
+ * `variant="sheet"` is the M01 bottom sheet: full width at the bottom, top radius 24,
+ * padding 12/20/34, at every width.
  */
 export function Modal({
   open,
@@ -75,12 +77,14 @@ export function Modal({
   labelledBy,
   children,
   className = '',
+  variant = 'dialog',
 }: {
   open: boolean;
   onClose: () => void;
   labelledBy: string;
   children: ReactNode;
   className?: string;
+  variant?: 'dialog' | 'sheet';
 }) {
   const reduced = useReducedMotion();
   const [mounted, setMounted] = useState(open);
@@ -144,7 +148,11 @@ export function Modal({
   if (!mounted || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto sm:items-center sm:p-m">
+    <div
+      className={`fixed inset-0 z-50 flex items-end justify-center overflow-y-auto ${
+        variant === 'sheet' ? '' : 'sm:items-center sm:p-m'
+      }`}
+    >
       <div
         data-testid="modal-overlay"
         aria-hidden="true"
@@ -157,9 +165,11 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={labelledBy}
         tabIndex={-1}
-        className={`relative z-10 my-auto w-full max-w-[560px] rounded-t-(--radius-form) bg-white p-l shadow-card outline-none sm:rounded-(--radius-form) sm:p-[40px] ${
-          open ? 'animate-modal-in' : 'animate-modal-out'
-        } ${className}`}
+        className={`relative z-10 w-full bg-white shadow-card outline-none ${
+          variant === 'sheet'
+            ? 'mt-auto max-w-[560px] rounded-t-l px-[20px] pt-[12px] pb-[34px]'
+            : 'my-auto max-w-[560px] rounded-t-(--radius-form) p-l sm:rounded-(--radius-form) sm:p-[40px]'
+        } ${open ? 'animate-modal-in' : 'animate-modal-out'} ${className}`}
       >
         {children}
       </div>

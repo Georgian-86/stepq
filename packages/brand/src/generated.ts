@@ -29,5 +29,14 @@ export const iconSvg = {
   "x-muted": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M4.5 4.5L13.5 13.5M13.5 4.5L4.5 13.5\" stroke=\"#55695D\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n</svg>\n",
 } as const;
 
+export const upiAppSvg = {
+  "bhim": "<svg width=\"32\" height=\"32\" viewBox=\"0 0 32 32\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"16\" cy=\"16\" r=\"16\" fill=\"#F47920\"/>\n</svg>\n",
+  "gpay": "<svg width=\"32\" height=\"32\" viewBox=\"0 0 32 32\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"16\" cy=\"16\" r=\"16\" fill=\"#4285F4\"/>\n</svg>\n",
+  "other": "<svg width=\"32\" height=\"32\" viewBox=\"0 0 32 32\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"16\" cy=\"16\" r=\"16\" fill=\"#55695D\"/>\n</svg>\n",
+  "paytm": "<svg width=\"32\" height=\"32\" viewBox=\"0 0 32 32\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"16\" cy=\"16\" r=\"16\" fill=\"#00B9F1\"/>\n</svg>\n",
+  "phonepe": "<svg width=\"32\" height=\"32\" viewBox=\"0 0 32 32\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"16\" cy=\"16\" r=\"16\" fill=\"#5F259F\"/>\n</svg>\n",
+} as const;
+
 export type PikoMood = keyof typeof pikoSvg;
 export type IconName = keyof typeof iconSvg;
+export type UpiApp = keyof typeof upiAppSvg;

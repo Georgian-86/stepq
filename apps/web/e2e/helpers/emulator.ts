@@ -70,3 +70,18 @@ export function actionTokenFromMail(mail: MailDoc): string {
   }
   throw new Error(`No action token in mail ${mail.id} (${mail.template})`);
 }
+
+const FUNCTIONS_URL = `http://127.0.0.1:5001/${PROJECT_ID}/asia-south1`;
+
+/**
+ * Opens the action link in a mail the way /confirm would: calls the `confirmAction` callable
+ * on the Functions emulator with the mail's token (e.g. the founder verifying a backing).
+ */
+export async function confirmFromMail(mail: MailDoc): Promise<void> {
+  const res = await fetch(`${FUNCTIONS_URL}/confirmAction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: { token: actionTokenFromMail(mail) } }),
+  });
+  if (!res.ok) throw new Error(`confirmAction failed: ${res.status} ${await res.text()}`);
+}

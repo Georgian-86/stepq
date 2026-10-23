@@ -23,8 +23,11 @@ function render() {
     '',
     `export const iconSvg = {\n${entries(list('icons'))}} as const;`,
     '',
+    `export const upiAppSvg = {\n${entries(list('upi'))}} as const;`,
+    '',
     'export type PikoMood = keyof typeof pikoSvg;',
     'export type IconName = keyof typeof iconSvg;',
+    'export type UpiApp = keyof typeof upiAppSvg;',
     '',
   ].join('\n');
 }
