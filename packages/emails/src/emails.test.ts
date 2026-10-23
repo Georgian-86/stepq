@@ -71,7 +71,11 @@ describe('founderMessage (E03)', () => {
     expect(r.text.length).toBeGreaterThan(0);
   });
   it('preserves line breaks in the message', async () => {
-    const r = await render('founderMessage', { ...props, message: 'First line\nSecond line' }, opts);
+    const r = await render(
+      'founderMessage',
+      { ...props, message: 'First line\nSecond line' },
+      opts,
+    );
     expect(r.html).toContain('white-space:pre-wrap');
     expect(r.html).toContain('First line\nSecond line');
   });

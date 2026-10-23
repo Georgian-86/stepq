@@ -104,7 +104,9 @@ describe.skipIf(!host)('backing and verify', () => {
   });
 
   it('appends to an existing list and keeps two different backers with the same wall name', async () => {
-    await db().doc('public/backers').set({ names: ['Aman K.'] });
+    await db()
+      .doc('public/backers')
+      .set({ names: ['Aman K.'] });
     const a = await back();
     const b = await back();
     await confirmActionHandler(req({ token: a.token }));

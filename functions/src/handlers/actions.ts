@@ -13,7 +13,10 @@ import { parseOrThrow } from '../lib/validate';
 type Req = Pick<CallableRequest, 'data' | 'rawRequest'>;
 
 /** Kinds these callables act on; 'reserve' tokens belong to the waitlist flow. */
-const ACTION_KINDS = ['approveAmbassador', 'verifyBacking'] as const satisfies readonly ActionKind[];
+const ACTION_KINDS = [
+  'approveAmbassador',
+  'verifyBacking',
+] as const satisfies readonly ActionKind[];
 type HandledKind = (typeof ACTION_KINDS)[number];
 
 const notFound = () => new HttpsError('not-found', 'This link is no longer valid.');
