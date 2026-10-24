@@ -1,21 +1,12 @@
 import type { Api, ApiErrorDetails, ApiName } from '@stepq/schemas';
 import { FirebaseError } from 'firebase/app';
 import { httpsCallable } from 'firebase/functions';
+import { ApiFieldError, GENERIC_ERROR, RATE_LIMIT_ERROR } from './apiErrors';
 import { functions, initAppCheck } from './firebase';
+import { PREVIEW_MODE } from './preview';
+import { previewCall } from './previewApi';
 
-export const GENERIC_ERROR = 'Something went wrong. Please try again.';
-export const RATE_LIMIT_ERROR = 'Too many tries. Please wait a few minutes.';
-
-/** Field-level validation errors from a callable (`invalid-argument` with `details.fields`). */
-export class ApiFieldError extends Error {
-  constructor(
-    public readonly fields: Record<string, string>,
-    message = 'Please check the highlighted fields.',
-  ) {
-    super(message);
-    this.name = 'ApiFieldError';
-  }
-}
+export { ApiFieldError, GENERIC_ERROR, RATE_LIMIT_ERROR };
 
 /** Codes whose server message is written for people (see functions/src/handlers). */
 const USER_FACING = new Set([
@@ -46,6 +37,7 @@ export function toApiError(e: unknown): Error {
 }
 
 export async function call<K extends ApiName>(name: K, data: Api[K]['in']): Promise<Api[K]['out']> {
+  if (PREVIEW_MODE) return previewCall(name, data);
   initAppCheck();
   const fn = httpsCallable<Api[K]['in'], Api[K]['out']>(functions, name);
   try {

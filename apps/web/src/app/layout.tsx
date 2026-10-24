@@ -6,12 +6,15 @@ import '@fontsource/nunito/800.css';
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { PREVIEW_MODE } from '@/lib/preview';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://stepq.in'),
   title: { default: 'StepQ: a walking app for India', template: '%s · StepQ' },
   description:
     'A walking app for India. Walk with friends and earn rewards for every step milestone. Join the waitlist.',
+  // Preview builds are for the client only (next.config.ts also sends X-Robots-Tag).
+  ...(PREVIEW_MODE ? { robots: { index: false, follow: false } } : {}),
 };
 
 export const viewport: Viewport = {

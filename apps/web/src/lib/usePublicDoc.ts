@@ -1,18 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { PREVIEW_MODE } from './preview';
 
 let warned = false;
 
 /**
  * Live data of a public Firestore doc (`public/stats`, `public/backers`): `undefined` until the
  * first snapshot (or if the listener fails), `null` when the doc does not exist. Firebase is
- * loaded lazily so it stays out of the first paint.
+ * loaded lazily so it stays out of the first paint. Preview builds have no Firestore: every
+ * doc reads as missing (live count 0, no backers wall).
  */
 export function usePublicDoc<T extends object>(id: 'stats' | 'backers'): T | null | undefined {
-  const [data, setData] = useState<T | null | undefined>(undefined);
+  const [data, setData] = useState<T | null | undefined>(PREVIEW_MODE ? null : undefined);
 
   useEffect(() => {
+    if (PREVIEW_MODE) return;
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
     Promise.all([import('firebase/firestore'), import('./firebase')])

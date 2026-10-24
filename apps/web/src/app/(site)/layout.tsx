@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { Footer } from '@/components/site/Footer';
 import { Nav } from '@/components/site/Nav';
+import { PreviewBanner } from '@/components/site/PreviewBanner';
 import { FounderModal } from '@/features/founder/FounderModal';
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
@@ -12,6 +13,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       >
         Skip to content
       </a>
+      <PreviewBanner />
       <Nav />
       <main id="main" tabIndex={-1} className="outline-none">
         {children}
