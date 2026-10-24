@@ -3,29 +3,34 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * Focusable list of form errors shown after a failed submit. Each item links to its field
- * (`#<fieldId>`). Pass a changing `focusKey` (e.g. useZodForm's failedSubmits) to re-focus.
+ * Focusable list of form errors, shown only once a submit has failed (`submitCount` =
+ * useZodForm's failedSubmits > 0): a blur error alone stays under its field and never pulls
+ * focus. The summary takes focus on each new failed submit only. Each item links to its field
+ * (`#<fieldId>`).
  */
 export function ErrorSummary({
   errors,
   labels = {},
   fieldId = (name) => name,
-  focusKey,
+  submitCount,
   title = 'Please fix these and try again:',
 }: {
   errors: Record<string, string>;
   labels?: Record<string, string>;
   fieldId?: (name: string) => string;
-  focusKey?: number;
+  submitCount: number;
   title?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const entries = Object.entries(errors);
-  const visible = entries.length > 0;
+  const visible = submitCount > 0 && entries.length > 0;
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
+  // Keyed on submitCount only: errors appearing or changing later (blur) never steal focus.
   useEffect(() => {
-    if (visible) ref.current?.focus();
-  }, [visible, focusKey]);
+    if (submitCount > 0 && visibleRef.current) ref.current?.focus();
+  }, [submitCount]);
 
   if (!visible) return null;
   return (

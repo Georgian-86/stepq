@@ -1,5 +1,5 @@
 import { firstName } from '@stepq/core';
-import { founderMessageInput, type Api, type FounderMessageInput } from '@stepq/schemas';
+import { founderMessageInput, TOPIC_LABELS, type Api } from '@stepq/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
 import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { FOUNDER_INBOX } from '../config';
@@ -11,14 +11,6 @@ import { enforceRateLimit } from '../lib/rateLimit';
 import { parseOrThrow } from '../lib/validate';
 
 type Req = Pick<CallableRequest, 'data' | 'rawRequest'>;
-
-const TOPIC_LABELS: Record<FounderMessageInput['topic'], string> = {
-  partnership: 'Partnership',
-  investment: 'Investment',
-  feedback: 'Feedback',
-  press: 'Press',
-  other: 'Other',
-};
 
 export async function sendFounderMessageHandler(
   req: Req,

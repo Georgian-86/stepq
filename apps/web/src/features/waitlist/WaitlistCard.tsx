@@ -52,7 +52,7 @@ export function WaitlistCard() {
           errors={form.errors}
           labels={LABELS}
           fieldId={form.fieldId}
-          focusKey={form.failedSubmits}
+          submitCount={form.failedSubmits}
         />
         <Field
           label="Full name"

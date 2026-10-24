@@ -1,5 +1,5 @@
 import { firstName } from '@stepq/core';
-import { ambassadorInput, type AmbassadorInput, type Api } from '@stepq/schemas';
+import { ambassadorInput, FOLLOWERS_LABELS, type Api } from '@stepq/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
 import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { FOUNDER_INBOX, SITE_URL } from '../config';
@@ -13,12 +13,6 @@ import { parseOrThrow } from '../lib/validate';
 
 type Req = Pick<CallableRequest, 'data' | 'rawRequest'>;
 
-const FOLLOWERS_LABELS: Record<AmbassadorInput['followers'], string> = {
-  under_1k: 'Under 1k',
-  '1k_10k': '1k–10k',
-  '10k_50k': '10k–50k',
-  '50k_plus': '50k+',
-};
 const APPROVE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function submitAmbassadorHandler(req: Req): Promise<Api['submitAmbassador']['out']> {

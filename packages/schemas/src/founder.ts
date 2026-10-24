@@ -3,6 +3,15 @@ import { email, honeypot, optionalPhone, personName, requestId } from './fields'
 
 export const TOPICS = ['partnership', 'investment', 'feedback', 'press', 'other'] as const;
 
+/** Chip labels (W16) and email labels for `topic`. */
+export const TOPIC_LABELS: Record<(typeof TOPICS)[number], string> = {
+  partnership: 'Partnership',
+  investment: 'Investment',
+  feedback: 'Feedback',
+  press: 'Press',
+  other: 'Other',
+};
+
 export const founderMessageInput = z.object({
   name: personName,
   email,

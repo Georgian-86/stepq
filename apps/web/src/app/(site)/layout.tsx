@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Footer } from '@/components/site/Footer';
 import { Nav } from '@/components/site/Nav';
+import { FounderModal } from '@/features/founder/FounderModal';
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
@@ -16,6 +17,10 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <Footer />
+      {/* W16/W17 on every page (`?modal=founder`, e.g. footer "Collaborate with us"). */}
+      <Suspense fallback={null}>
+        <FounderModal />
+      </Suspense>
     </>
   );
 }

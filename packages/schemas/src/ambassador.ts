@@ -3,6 +3,14 @@ import { email, honeypot, indianMobile, personName, requestId } from './fields';
 
 export const FOLLOWERS = ['under_1k', '1k_10k', '10k_50k', '50k_plus'] as const;
 
+/** Chip labels (W09) and email labels for `followers`. */
+export const FOLLOWERS_LABELS: Record<(typeof FOLLOWERS)[number], string> = {
+  under_1k: 'Under 1k',
+  '1k_10k': '1k–10k',
+  '10k_50k': '10k–50k',
+  '50k_plus': '50k+',
+};
+
 export const ambassadorInput = z.object({
   name: personName,
   email,

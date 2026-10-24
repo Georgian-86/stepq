@@ -102,12 +102,11 @@ export function TeamForm({ form }: { form: TeamFormState }) {
       <h2 id="apply-title" className="type-web-h2 text-ink">
         Apply now
       </h2>
-      {/* Only after a submit: a blur or file error alone must not pull focus to the summary. */}
       <ErrorSummary
-        errors={form.failedSubmits ? errors : {}}
+        errors={errors}
         labels={LABELS}
         fieldId={form.fieldId}
-        focusKey={form.failedSubmits}
+        submitCount={form.failedSubmits}
       />
       <Field label="Full name" autoComplete="name" {...form.field('name')} error={errors.name} />
       <Field

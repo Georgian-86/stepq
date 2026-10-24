@@ -119,10 +119,10 @@ export function FundForm() {
           Your details
         </h2>
         <ErrorSummary
-          errors={form.failedSubmits ? errors : {}}
+          errors={errors}
           labels={LABELS}
           fieldId={form.fieldId}
-          focusKey={form.failedSubmits}
+          submitCount={form.failedSubmits}
         />
         <Field
           label="Name"

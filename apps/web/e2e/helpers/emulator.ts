@@ -85,3 +85,14 @@ export async function confirmFromMail(mail: MailDoc): Promise<void> {
   });
   if (!res.ok) throw new Error(`confirmAction failed: ${res.status} ${await res.text()}`);
 }
+
+/** Calls a callable on the Functions emulator directly (the emulator does not enforce App Check). */
+export async function callFunction<T = unknown>(name: string, data: unknown): Promise<T> {
+  const res = await fetch(`${FUNCTIONS_URL}/${name}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data }),
+  });
+  if (!res.ok) throw new Error(`${name} failed: ${res.status} ${await res.text()}`);
+  return ((await res.json()) as { result: T }).result;
+}

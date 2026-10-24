@@ -116,7 +116,7 @@ describe('useZodForm + ErrorSummary', () => {
       const form = useZodForm(schema);
       return (
         <form onSubmit={form.submit(vi.fn())} noValidate>
-          <ErrorSummary errors={form.errors} focusKey={form.failedSubmits} />
+          <ErrorSummary errors={form.errors} submitCount={form.failedSubmits} />
           <Field label="Name" {...form.field('name')} error={form.errors.name} />
           <Field label="Email" {...form.field('email')} error={form.errors.email} />
           <button type="submit">Send</button>
@@ -161,7 +161,11 @@ describe('useZodForm + ErrorSummary', () => {
       const form = useZodForm(schema, { idPrefix: 'waitlist' });
       return (
         <form onSubmit={form.submit(vi.fn())} noValidate>
-          <ErrorSummary errors={form.errors} fieldId={form.fieldId} focusKey={form.failedSubmits} />
+          <ErrorSummary
+            errors={form.errors}
+            fieldId={form.fieldId}
+            submitCount={form.failedSubmits}
+          />
           <Field label="Name" {...form.field('name')} error={form.errors.name} />
           <Field label="Email" {...form.field('email')} error={form.errors.email} />
           <button type="submit">Send</button>

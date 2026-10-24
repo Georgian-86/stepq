@@ -69,7 +69,7 @@ export function trapTab(e: KeyboardEvent | ReactKeyboardEvent, root: HTMLElement
  * radius 28, padding 40, card shadow. Focus is trapped, Esc and overlay click close,
  * focus returns to the opener. Enter: fade + 12 px rise 200 ms; exit 140 ms.
  * `variant="sheet"` is the M01 bottom sheet: full width at the bottom, top radius 24,
- * padding 12/20/34, at every width.
+ * padding 12/20/34, at every width. `wide` is the 640 px card (W10).
  */
 export function Modal({
   open,
@@ -78,6 +78,7 @@ export function Modal({
   children,
   className = '',
   variant = 'dialog',
+  wide = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -85,6 +86,7 @@ export function Modal({
   children: ReactNode;
   className?: string;
   variant?: 'dialog' | 'sheet';
+  wide?: boolean;
 }) {
   const reduced = useReducedMotion();
   const [mounted, setMounted] = useState(open);
@@ -168,7 +170,7 @@ export function Modal({
         className={`relative z-10 w-full bg-white shadow-card outline-none ${
           variant === 'sheet'
             ? 'mt-auto max-w-[560px] rounded-t-l px-[20px] pt-[12px] pb-[34px]'
-            : 'my-auto max-w-[560px] rounded-t-(--radius-form) p-l sm:rounded-(--radius-form) sm:p-[40px]'
+            : `my-auto ${wide ? 'max-w-[640px]' : 'max-w-[560px]'} rounded-t-(--radius-form) p-l sm:rounded-(--radius-form) sm:p-[40px]`
         } ${open ? 'animate-modal-in' : 'animate-modal-out'} ${className}`}
       >
         {children}
