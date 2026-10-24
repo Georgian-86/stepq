@@ -32,6 +32,7 @@ describe('previewCall', () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('answers only after the simulated network delay', async () => {
@@ -155,6 +156,5 @@ describe('previewCall', () => {
     });
     const res = await settle(previewCall('joinWaitlist', join('solo@example.com')));
     expect(res.status).toBe('joined');
-    vi.restoreAllMocks();
   });
 });

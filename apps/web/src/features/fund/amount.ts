@@ -1,4 +1,5 @@
 import { backingInput } from '@stepq/schemas';
+import { PREVIEW_MODE, PREVIEW_NOTHING_SAVED, PREVIEW_UPI_NOTE } from '@/lib/preview';
 
 const amountSchema = backingInput.shape.amount;
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
@@ -31,6 +32,7 @@ export function thankYouHref(amount: number): string {
 
 /** W08 sentence (`10:737`); the amount is left out unless `?amount=` is a valid whole number. */
 export function thankYouMessage(amountParam: string | null): string {
+  if (PREVIEW_MODE) return `${PREVIEW_NOTHING_SAVED} ${PREVIEW_UPI_NOTE}`;
   const n = amountParam && /^\d+$/.test(amountParam) ? Number(amountParam) : undefined;
   const of = isValidAmount(n) ? ` of ${formatInr(n)}` : '';
   return `We have recorded your payment${of}. Once StepQ verifies it, you will get a personal email and your name will join the sponsor wall.`;

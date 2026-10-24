@@ -38,17 +38,13 @@ describe('preview mode (NEXT_PUBLIC_PREVIEW_MODE=1)', () => {
   });
 
   it('never initialises Firebase or App Check, and call() is simulated', async () => {
-    vi.useFakeTimers();
-    try {
-      const { call } = await import('./api');
-      const { initAppCheck } = await import('./firebase');
-      expect(initAppCheck()).toBeNull();
-      const res = call('checkUsername', { username: 'riya.walks' });
-      await vi.advanceTimersByTimeAsync(600);
-      await expect(res).resolves.toEqual({ available: true });
-    } finally {
-      vi.useRealTimers();
-    }
+    const { call } = await import('./api');
+    const { initAppCheck } = await import('./firebase');
+    expect(initAppCheck()).toBeNull();
+    // Real timers: the simulator is a lazily imported chunk, then waits ~600 ms.
+    await expect(call('checkUsername', { username: 'riya.walks' })).resolves.toEqual({
+      available: true,
+    });
     expect(initializeApp).not.toHaveBeenCalled();
     expect(getFirestore).not.toHaveBeenCalled();
     expect(getFunctions).not.toHaveBeenCalled();

@@ -3,13 +3,16 @@
 import { useEffect, useRef } from 'react';
 import { Piko } from '@/components/site/Piko';
 import { Button } from '@/components/ui/Button';
+import { PREVIEW_MODE, PREVIEW_NOTHING_SAVED } from '@/lib/preview';
 
 export const SENT_TITLE_ID = 'founder-sent-title';
 
 /** W17 "Thanks, {firstName}. …" sentence (`30:1837`). */
 export function sentMessage(firstName: string): string {
   const first = firstName.trim();
-  return `${first ? `Thanks, ${first}.` : 'Thanks.'} Your message is on its way to connect@stepq.in. The founder reads every message personally.`;
+  const thanks = first ? `Thanks, ${first}.` : 'Thanks.';
+  if (PREVIEW_MODE) return `${thanks} ${PREVIEW_NOTHING_SAVED}`;
+  return `${thanks} Your message is on its way to connect@stepq.in. The founder reads every message personally.`;
 }
 
 /** W17 Message sent (`30:1577`), shown in place of the W16 form. */

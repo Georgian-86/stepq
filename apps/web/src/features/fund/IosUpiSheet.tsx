@@ -2,9 +2,11 @@
 
 import { upiAppSvg, type UpiApp } from '@stepq/brand';
 import { upiAppLinks } from '@stepq/core';
+import { PreviewNote } from '@/components/site/PreviewNote';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
+import { PREVIEW_UPI_NOTE } from '@/lib/preview';
 import { formatInr } from './amount';
 
 const APPS: { key: UpiApp; name: string }[] = [
@@ -60,6 +62,7 @@ export function IosUpiSheet({
               </li>
             ))}
           </ul>
+          <PreviewNote className="mt-m">{PREVIEW_UPI_NOTE}</PreviewNote>
           <Button className="mt-m w-full" onClick={onPaid}>
             I&apos;ve paid
           </Button>

@@ -1,7 +1,9 @@
 'use client';
 
+import { PreviewNote } from '@/components/site/PreviewNote';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { PREVIEW_UPI_NOTE } from '@/lib/preview';
 import { formatInr } from './amount';
 import { UpiIdPill } from './UpiIdPill';
 import { UpiQr } from './UpiQr';
@@ -34,6 +36,7 @@ export function PayModal({
             />
           </div>
           <UpiIdPill className="justify-center" />
+          <PreviewNote>{PREVIEW_UPI_NOTE}</PreviewNote>
           <Button data-autofocus className="w-full" onClick={onPaid}>
             I&apos;ve paid
           </Button>

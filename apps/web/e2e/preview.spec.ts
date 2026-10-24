@@ -38,17 +38,13 @@ test('join → W02 → reserve a username → W03, with a zero live count', asyn
   await form.getByRole('button', { name: 'Join the waitlist' }).click();
 
   const reserve = w02(page);
-  await expect(reserve).toContainText(
-    "You're #1. We'll email riya@example.com the day StepQ launches.",
-  );
+  await expect(reserve).toContainText("You're #1. Preview: nothing was saved or emailed.");
   await reserve.getByLabel('Username').fill('riya.walks');
   await expect(reserve.getByText('Available', { exact: true })).toBeVisible();
   await reserve.getByRole('button', { name: 'Reserve @riya.walks' }).click();
 
   const reserved = page.getByRole('dialog', { name: '@riya.walks is yours' });
-  await expect(reserved).toContainText(
-    "It'll be waiting for you when you sign up with riya@example.com.",
-  );
+  await expect(reserved).toContainText('Preview: nothing was saved or emailed.');
   await reserved.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
@@ -75,5 +71,16 @@ test('founder message → W17', async ({ page }) => {
   await modal.getByRole('button', { name: 'Send to the founder' }).click();
 
   const sent = page.getByRole('dialog', { name: 'Message sent' });
-  await expect(sent).toContainText('Thanks, Riya.');
+  await expect(sent).toContainText('Thanks, Riya. Preview: nothing was saved or emailed.');
+});
+
+test('the UPI hand-off warns that payments are real and not recorded', async ({ page }) => {
+  await page.goto('/fund');
+  await page.getByLabel('Name', { exact: true }).fill('Riya Sharma');
+  await page.getByLabel('Contact number').fill('98765 43210');
+  // Desktop: W07 QR modal. Mobile (Android UA): the inline "Open UPI app" state.
+  await page.getByRole('button', { name: 'Pay ₹501 with UPI' }).click();
+  await expect(
+    page.getByText("Preview: UPI payments made here are real and won't be recorded."),
+  ).toBeVisible();
 });

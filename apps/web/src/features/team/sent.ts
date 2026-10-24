@@ -1,4 +1,5 @@
 import { ROLE_LABELS, ROLES } from '@stepq/schemas';
+import { PREVIEW_MODE, PREVIEW_NOTHING_SAVED } from '@/lib/preview';
 
 type Role = (typeof ROLES)[number];
 
@@ -27,6 +28,7 @@ export function sentMessage({
 }): string {
   const first = name?.trim();
   const thanks = first ? `Thanks, ${first}.` : 'Thanks.';
+  if (PREVIEW_MODE) return `${thanks} ${PREVIEW_NOTHING_SAVED}`;
   const forRole = isRole(role) ? ` for ${ROLE_LABELS[role]}` : '';
   const reply = email ? `reply to ${email}` : 'reply by email';
   return `${thanks} StepQ will review your application${forRole} and ${reply}.`;

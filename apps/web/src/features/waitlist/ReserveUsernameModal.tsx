@@ -8,6 +8,7 @@ import { Field } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { ApiFieldError, call, GENERIC_ERROR } from '@/lib/api';
+import { PREVIEW_MODE, PREVIEW_NOTHING_SAVED } from '@/lib/preview';
 import { removeParams, replaceModalParam, useModalParam } from '@/lib/useModalParam';
 import { USERNAME_MESSAGES, useUsernameCheck, type UsernameCheck } from './useUsernameCheck';
 import { useWaitlist } from './WaitlistState';
@@ -67,8 +68,8 @@ export function ReserveUsernameModal() {
             {join && (
               <p className="type-web-body text-muted">
                 {mode === 'existing'
-                  ? `You're already on the list (#${join.position.toLocaleString('en-IN')}). We've emailed you a link to reserve your username.`
-                  : `You're #${join.position.toLocaleString('en-IN')}. We'll email ${join.email} the day StepQ launches.`}
+                  ? `You're already on the list (#${join.position.toLocaleString('en-IN')}). ${PREVIEW_MODE ? PREVIEW_NOTHING_SAVED : "We've emailed you a link to reserve your username."}`
+                  : `You're #${join.position.toLocaleString('en-IN')}. ${PREVIEW_MODE ? PREVIEW_NOTHING_SAVED : `We'll email ${join.email} the day StepQ launches.`}`}
               </p>
             )}
           </>

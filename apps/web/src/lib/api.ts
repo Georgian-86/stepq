@@ -3,8 +3,6 @@ import { FirebaseError } from 'firebase/app';
 import { httpsCallable } from 'firebase/functions';
 import { ApiFieldError, GENERIC_ERROR, RATE_LIMIT_ERROR } from './apiErrors';
 import { functions, initAppCheck } from './firebase';
-import { PREVIEW_MODE } from './preview';
-import { previewCall } from './previewApi';
 
 export { ApiFieldError, GENERIC_ERROR, RATE_LIMIT_ERROR };
 
@@ -37,7 +35,11 @@ export function toApiError(e: unknown): Error {
 }
 
 export async function call<K extends ApiName>(name: K, data: Api[K]['in']): Promise<Api[K]['out']> {
-  if (PREVIEW_MODE) return previewCall(name, data);
+  // Preview builds only (PREVIEW_MODE). The env check is written out so webpack sees a
+  // constant and drops the simulator chunk from live builds altogether.
+  if (process.env.NEXT_PUBLIC_PREVIEW_MODE === '1') {
+    return (await import('./previewApi')).previewCall(name, data);
+  }
   initAppCheck();
   const fn = httpsCallable<Api[K]['in'], Api[K]['out']>(functions, name);
   try {
