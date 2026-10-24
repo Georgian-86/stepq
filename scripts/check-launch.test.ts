@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -70,12 +70,21 @@ describe('check-launch', () => {
     expect(r.lines.join('\n')).toMatch(/privacyPolicy .*\[Q3\]/);
   });
 
-  it('real repo: reports the Q5 placeholders while they exist', async () => {
-    const input = await loadInput(root);
-    const ids = findGaps(input).map((g) => g.id);
-    expect(input.footerPlaceholder).toBe(true);
-    expect(ids).toContain('footerPlaceholder');
-    expect(ids).toContain('mailFrom');
+  // Whether the real repo still has the Q5 placeholders, read independently of loadInput.
+  const realQ5 = () => {
+    const footer = readFileSync(join(root, 'apps/web/src/components/site/Footer.tsx'), 'utf8');
+    const config = readFileSync(join(root, 'functions/src/config.ts'), 'utf8');
+    return {
+      footer: /hello@stepq\.in/i.test(footer) && /placeholder/i.test(footer),
+      mail: /MAIL_FROM',\s*\{\s*default:\s*'[^']*hello@stepq\.in/i.test(config),
+    };
+  };
+
+  it('real repo: Q5 gaps are reported exactly while the placeholders exist', async () => {
+    const ids = findGaps(await loadInput(root)).map((g) => g.id);
+    const q5 = realQ5();
+    expect(ids.includes('footerPlaceholder')).toBe(q5.footer);
+    expect(ids.includes('mailFrom')).toBe(q5.mail);
   });
 
   it('footer detection: any wording, and a missing file is unknown', () => {
@@ -148,11 +157,12 @@ describe('check-launch', () => {
         encoding: 'utf8',
       });
     const open = cli();
-    expect(open.status).toBe(1);
-    expect(open.stdout).toMatch(/footerPlaceholder|mailFrom/);
-    const ids = findGaps(await loadInput(root))
-      .map((g) => g.id)
-      .join(',');
+    const gapIds = findGaps(await loadInput(root)).map((g) => g.id);
+    expect(open.status).toBe(gapIds.length ? 1 : 0);
+    const q5 = realQ5();
+    if (q5.footer) expect(open.stdout).toContain('footerPlaceholder');
+    if (q5.mail) expect(open.stdout).toContain('mailFrom');
+    const ids = gapIds.join(',');
     expect(cli(`--allow=${ids}`).status).toBe(0);
   });
 });
