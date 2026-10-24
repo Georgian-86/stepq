@@ -1,5 +1,9 @@
 // Lists every launch item the client still has to supply. Exit 1 while any remain.
 // Usage: pnpm check:launch [--allow=<id>,<id>]   (accepts named gaps; ids are printed below)
+//
+// NOTE: functions/.env.<prod project> is gitignored, so on a clean checkout (e.g. CI) `kitUrl`
+// is reported as "unknown" (open). A deploy run must either provide that file or pass
+// --allow=kitUrl explicitly. The same applies to apps/web/apphosting.yaml (`recaptchaKey`).
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -9,8 +13,8 @@ export interface LaunchInput {
   content: SiteContent;
   /** Effective MAIL_FROM (prod env file, else the Functions default); null when unknown. */
   mailFrom: string | null;
-  /** Footer source still contains the placeholder sentence. */
-  footerPlaceholder: boolean;
+  /** Footer source still shows the hello@stepq.in placeholder; undefined = Footer.tsx missing (unknown). */
+  footerPlaceholder: boolean | undefined;
   /** AMBASSADOR_KIT_URL from functions/.env.<prod>; undefined = file missing (unknown). */
   kitUrl: string | undefined;
   /** apphosting.yaml has NEXT_PUBLIC_RECAPTCHA_KEY; undefined = file missing (unknown). */
@@ -69,11 +73,17 @@ export function findGaps(i: LaunchInput): Gap[] {
       missing: 'MAIL_FROM is still the placeholder hello@stepq.in',
       question: 'Q5',
     });
-  if (i.footerPlaceholder)
+  if (i.footerPlaceholder === undefined)
     gaps.push({
       id: 'footerPlaceholder',
-      missing:
-        'footer still says "hello@stepq.in is a placeholder until StepQ confirms its address."',
+      missing: 'footer unknown (apps/web/src/components/site/Footer.tsx not found)',
+      question: 'Q5',
+      unknown: true,
+    });
+  else if (i.footerPlaceholder)
+    gaps.push({
+      id: 'footerPlaceholder',
+      missing: 'footer still shows the hello@stepq.in placeholder sentence',
       question: 'Q5',
     });
   if (!c.fundCollectsEmail)
@@ -124,6 +134,26 @@ const envValue = (text: string, key: string) =>
     ?.trim()
     .replace(/^["']|["']$/g, '');
 
+/** The footer shows hello@stepq.in next to the word "placeholder" (any wording). */
+export function hasFooterPlaceholder(source: string): boolean {
+  return /hello@stepq\.in/i.test(source) && /placeholder/i.test(source);
+}
+
+/** True when NEXT_PUBLIC_RECAPTCHA_KEY has a non-empty `value:` (comment lines ignored). */
+export function hasRecaptchaKey(yaml: string): boolean {
+  const lines = yaml.split('\n').filter((l) => !/^\s*#/.test(l));
+  const at = lines.findIndex((l) =>
+    /variable:\s*["']?NEXT_PUBLIC_RECAPTCHA_KEY["']?\s*(#.*)?$/.test(l),
+  );
+  if (at < 0) return false;
+  for (const l of lines.slice(at + 1)) {
+    if (/^\s*-\s/.test(l)) break;
+    const m = l.match(/^\s*value:\s*(.*?)\s*(#.*)?$/);
+    if (m) return m[1].replace(/^["']|["']$/g, '').trim() !== '';
+  }
+  return false;
+}
+
 export async function loadInput(root: string): Promise<LaunchInput> {
   const { site } = (await import(
     pathToFileURL(join(root, 'apps/web/src/content/site.ts')).href
@@ -134,20 +164,14 @@ export async function loadInput(root: string): Promise<LaunchInput> {
     (prodEnv && envValue(prodEnv, 'MAIL_FROM')) ||
     config.match(/defineString\('MAIL_FROM',\s*\{\s*default:\s*'([^']*)'/)?.[1] ||
     null;
-  const footer = read(join(root, 'apps/web/src/components/site/Footer.tsx')) ?? '';
+  const footer = read(join(root, 'apps/web/src/components/site/Footer.tsx'));
   const apphosting = read(join(root, 'apps/web/apphosting.yaml'));
   return {
     content: site,
     mailFrom,
-    footerPlaceholder: footer.includes('is a placeholder until StepQ confirms its address.'),
+    footerPlaceholder: footer === undefined ? undefined : hasFooterPlaceholder(footer),
     kitUrl: prodEnv === undefined ? undefined : (envValue(prodEnv, 'AMBASSADOR_KIT_URL') ?? ''),
-    recaptchaKey:
-      apphosting === undefined
-        ? undefined
-        : /NEXT_PUBLIC_RECAPTCHA_KEY/.test(apphosting) &&
-          !/variable:\s*NEXT_PUBLIC_RECAPTCHA_KEY\s*\n\s*value:\s*(""|'')?\s*(\n|$)/.test(
-            apphosting,
-          ),
+    recaptchaKey: apphosting === undefined ? undefined : hasRecaptchaKey(apphosting),
   };
 }
 

@@ -23,7 +23,6 @@ export function PrivacyPolicy({ content = site }: { content?: SiteContent }) {
           >
             Privacy policy
           </h1>
-          {!policy && <p className="type-web-body text-muted">We are finalising our policy.</p>}
         </div>
       </section>
       <div
@@ -57,8 +56,7 @@ export function PrivacyPolicy({ content = site }: { content?: SiteContent }) {
           <div role="status" className="type-web-body flex-1 rounded-[20px] bg-page p-l text-muted">
             <p className="type-web-h3 mb-[12px] text-ink">Policy coming soon</p>
             <p>
-              We are writing StepQ&rsquo;s privacy policy and will publish it here before launch.
-              Questions in the meantime?{' '}
+              Our privacy policy is being finalised. Questions in the meantime?{' '}
               <a href={`mailto:${content.contactEmail}`} className="text-deep underline">
                 {content.contactEmail}
               </a>

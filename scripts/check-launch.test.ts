@@ -4,7 +4,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { site, type SiteContent } from '../apps/web/src/content/site';
-import { findGaps, loadInput, parseAllow, report, type LaunchInput } from './check-launch';
+import {
+  findGaps,
+  hasFooterPlaceholder,
+  hasRecaptchaKey,
+  loadInput,
+  parseAllow,
+  report,
+  type LaunchInput,
+} from './check-launch';
 
 const filledContent: SiteContent = {
   ...site,
@@ -25,8 +33,29 @@ const filled: LaunchInput = {
 const root = join(import.meta.dirname, '..');
 
 describe('check-launch', () => {
-  it('current defaults leave items open and exit 1', async () => {
-    const gaps = findGaps(await loadInput(root));
+  // Frozen copy of today's content: filling the real site.ts later must not break CI.
+  const defaults: SiteContent = {
+    roles: ['marketing', 'design', 'content', 'tech'].map((id) => ({
+      id: id as SiteContent['roles'][number]['id'],
+      jdUrl: null,
+      jdSummary: null,
+    })),
+    ambassadorEligibility: null,
+    ambassadorTerms: null,
+    socials: { instagram: null, linkedin: null, youtube: null },
+    privacyPolicy: null,
+    contactEmail: 'hello@stepq.in',
+    fundCollectsEmail: false,
+  };
+
+  it('current defaults leave items open and exit 1', () => {
+    const gaps = findGaps({
+      content: defaults,
+      mailFrom: 'StepQ <hello@stepq.in>',
+      footerPlaceholder: true,
+      kitUrl: undefined,
+      recaptchaKey: undefined,
+    });
     const ids = gaps.map((g) => g.id);
     expect(ids).toEqual(
       expect.arrayContaining([
@@ -39,6 +68,34 @@ describe('check-launch', () => {
     const r = report(gaps);
     expect(r.exitCode).toBe(1);
     expect(r.lines.join('\n')).toMatch(/privacyPolicy .*\[Q3\]/);
+  });
+
+  it('real repo: reports the Q5 placeholders while they exist', async () => {
+    const input = await loadInput(root);
+    const ids = findGaps(input).map((g) => g.id);
+    expect(input.footerPlaceholder).toBe(true);
+    expect(ids).toContain('footerPlaceholder');
+    expect(ids).toContain('mailFrom');
+  });
+
+  it('footer detection: any wording, and a missing file is unknown', () => {
+    expect(hasFooterPlaceholder('<p>hello@stepq.in is only a placeholder for now</p>')).toBe(true);
+    expect(hasFooterPlaceholder('<p>hello@stepq.in</p>')).toBe(false);
+    const g = findGaps({ ...filled, footerPlaceholder: undefined });
+    expect(g.map((x) => x.id)).toEqual(['footerPlaceholder']);
+    expect(g[0].unknown).toBe(true);
+  });
+
+  it('recaptcha detection ignores comments and needs a non-empty value', () => {
+    const y = (v: string) =>
+      `env:\n  # value: commented\n  - variable: NEXT_PUBLIC_RECAPTCHA_KEY\n    ${v}\n  - variable: OTHER\n    value: x\n`;
+    expect(hasRecaptchaKey(y('value: abc'))).toBe(true);
+    expect(hasRecaptchaKey(y('value: ""'))).toBe(false);
+    expect(hasRecaptchaKey(y('value:'))).toBe(false);
+    expect(hasRecaptchaKey(y('# value: abc'))).toBe(false);
+    expect(hasRecaptchaKey('# - variable: NEXT_PUBLIC_RECAPTCHA_KEY\n#   value: abc\n')).toBe(
+      false,
+    );
   });
 
   it('a filled fixture is clean and exits 0', () => {
@@ -92,7 +149,7 @@ describe('check-launch', () => {
       });
     const open = cli();
     expect(open.status).toBe(1);
-    expect(open.stdout).toContain('privacyPolicy');
+    expect(open.stdout).toMatch(/footerPlaceholder|mailFrom/);
     const ids = findGaps(await loadInput(root))
       .map((g) => g.id)
       .join(',');
