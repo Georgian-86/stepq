@@ -17,6 +17,11 @@ export interface SiteContent {
   socials: { instagram: string | null; linkedin: string | null; youtube: string | null };
   privacyPolicy: string | null;
   contactEmail: 'hello@stepq.in';
+  /**
+   * Q1: the Fund copy promises a thank-you email, so the form must collect one. Flip to `true`
+   * once W06 has an email field; `pnpm check:launch` reports `fundEmailPromise` while false.
+   */
+  fundCollectsEmail: boolean;
 }
 
 export const site: SiteContent = {
@@ -31,4 +36,5 @@ export const site: SiteContent = {
   socials: { instagram: null, linkedin: null, youtube: null },
   privacyPolicy: null,
   contactEmail: 'hello@stepq.in',
+  fundCollectsEmail: false,
 };
