@@ -18,3 +18,5 @@ functions/lib/
 next-env.d.ts
 *.tsbuildinfo
 functions/.secret.local
+apps/web/e2e/artifacts/
+apps/web/.lighthouseci/

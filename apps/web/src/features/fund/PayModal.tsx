@@ -26,7 +26,7 @@ export function PayModal({
           <p className="type-web-body text-muted">
             Open any UPI app on your phone and scan this code.
           </p>
-          <div className="rounded-(--radius-card) border-[1.5px] border-line bg-white p-m">
+          <div className="rounded-(--radius-card) edge bg-white p-[17.5px]">
             <UpiQr
               link={payment.upiLink}
               size={200}
@@ -37,7 +37,7 @@ export function PayModal({
           <Button data-autofocus className="w-full" onClick={onPaid}>
             I&apos;ve paid
           </Button>
-          <Button variant="text" className="min-h-[44px] px-xs py-[10px]" onClick={onClose}>
+          <Button variant="text" onClick={onClose}>
             Cancel
           </Button>
         </div>

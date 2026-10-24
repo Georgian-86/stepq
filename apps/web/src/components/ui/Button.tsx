@@ -3,11 +3,12 @@ import type { ButtonHTMLAttributes } from 'react';
 export type ButtonVariant = 'primary' | 'text';
 
 const base =
-  'type-button inline-flex min-h-[52px] items-center justify-center gap-s rounded-pill px-l py-[15px] whitespace-nowrap transition-[transform,opacity] duration-150 active:scale-[0.98] disabled:cursor-not-allowed motion-reduce:active:scale-100';
+  'inline-flex items-center justify-center gap-s rounded-pill whitespace-nowrap transition-[transform,opacity] duration-150 active:scale-[0.98] disabled:cursor-not-allowed motion-reduce:active:scale-100';
 
+/** Primary: 52 px pill, App/Button. Text (W07/W16 Cancel): Web/Body Strong, 4/10 padding = 44 px. */
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-deep text-white disabled:opacity-70',
-  text: 'text-deep disabled:opacity-60',
+  primary: 'type-button min-h-[52px] px-l py-[15px] bg-deep text-white disabled:opacity-70',
+  text: 'type-web-body-strong min-h-[44px] px-xs py-[10px] text-deep disabled:opacity-60',
 };
 
 /** Class names of Button (Figma `4:116`), for links styled as buttons. */

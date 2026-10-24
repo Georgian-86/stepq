@@ -33,7 +33,7 @@ export function Select<T extends string>({
           id={inputId}
           aria-invalid={error ? true : false}
           aria-describedby={error ? errorId : undefined}
-          className={`${roundedControl(error)} block min-h-[53px] appearance-none py-[12px] pr-[44px] pl-[14px]`}
+          className={`${roundedControl(error)} block min-h-[53px] appearance-none py-[13.5px] pr-[45.5px] pl-[15.5px]`}
           {...props}
         >
           {placeholder !== undefined && (

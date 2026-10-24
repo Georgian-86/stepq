@@ -3,6 +3,7 @@
 import { ambassadorInput, FOLLOWERS, FOLLOWERS_LABELS } from '@stepq/schemas';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { HIT_44 } from '@/components/site/links';
 import { ModalLink } from '@/components/site/ModalLink';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -133,7 +134,7 @@ export function AmbassadorForm({
       >
         <ModalLink
           modal="terms"
-          className="type-web-small-strong relative inline-flex min-h-[44px] items-center px-xs text-deep underline-offset-2 hover:underline"
+          className={`type-web-small-strong inline-flex items-center px-xs py-[10px] text-deep underline-offset-2 hover:underline ${HIT_44}`}
         >
           Terms &amp; Conditions
         </ModalLink>

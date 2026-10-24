@@ -4,7 +4,8 @@ import { UpiQr } from './UpiQr';
 
 /**
  * W06 "Or scan to pay right now" (`30:1062`): the base UPI QR (no amount) and the UPI ID.
- * Figma's QR frame (radius 13.6, border 1.02, padding 10.88) is snapped to tokens (s / 1 / s).
+ * The QR frame keeps Figma's scaled-instance values (radius 13.6, padding 10.88, 1 px border:
+ * 159.8 px wide) so the text column is Figma's 390 px and wraps like the frame.
  */
 export function ScanToPayCard() {
   return (
@@ -12,7 +13,7 @@ export function ScanToPayCard() {
       aria-labelledby="scan-title"
       className="flex w-full flex-col items-start gap-[20px] rounded-(--radius-card) border border-line bg-white py-[20px] pr-l pl-[20px] sm:flex-row sm:items-center"
     >
-      <div className="shrink-0 rounded-(--radius-s) border border-line bg-white p-s">
+      <div className="shrink-0 rounded-[13.6px] border border-line bg-white p-[10.88px]">
         <UpiQr link={UPI_BASE} size={136} label="UPI QR code for StepQ" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col items-start gap-s">

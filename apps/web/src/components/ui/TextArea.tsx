@@ -3,17 +3,20 @@
 import { useId, type Ref, type TextareaHTMLAttributes } from 'react';
 import { FieldError, FieldLabel, roundedControl } from './fieldParts';
 
-/** Rounded multi-line field (W04 "Why StepQ?"): 96 px tall, 14 px padding. */
+/** Rounded multi-line field (W04 "Why StepQ?"): 96 px tall, 14 px padding inside the stroke. */
 export function TextArea({
   label,
   error,
   id,
   className = '',
+  controlClassName = 'min-h-[96px] p-[15.5px]',
   ref,
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
   error?: string;
+  /** Size and padding of the box itself; padding includes the 1.5 px stroke. */
+  controlClassName?: string;
   ref?: Ref<HTMLTextAreaElement>;
 }) {
   const autoId = useId();
@@ -28,7 +31,7 @@ export function TextArea({
         rows={3}
         aria-invalid={error ? true : false}
         aria-describedby={error ? errorId : undefined}
-        className={`${roundedControl(error)} block min-h-[96px] resize-y p-[14px]`}
+        className={`${roundedControl(error)} block resize-y ${controlClassName}`}
         {...props}
       />
       <FieldError id={errorId}>{error}</FieldError>

@@ -39,3 +39,37 @@ jobs:
             apps/web/playwright-report
             apps/web/test-results
           retention-days: 7
+  lhci:
+    # Lighthouse on / (mobile preset): performance >= 0.9, CLS < 0.1, accessibility >= 0.95
+    # (apps/web/lighthouserc.json). Separate from e2e; the build talks to the emulators' ports,
+    # which are not running here, so live data stays empty as on a first visit.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: Build the site
+        run: pnpm --filter web build
+        env:
+          NEXT_PUBLIC_USE_EMULATORS: '1'
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-stepq
+      - name: Lighthouse CI
+        working-directory: apps/web
+        run: |
+          export CHROME_PATH="$(node -e "import('@playwright/test').then((m) => console.log(m.chromium.executablePath()))")"
+          pnpm lhci
+        env:
+          NEXT_PUBLIC_USE_EMULATORS: '1'
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse
+          path: apps/web/.lighthouseci
+          retention-days: 7

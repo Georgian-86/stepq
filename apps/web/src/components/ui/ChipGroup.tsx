@@ -15,6 +15,7 @@ export function ChipGroup<T extends string>({
   onBlur,
   error,
   id,
+  tight = false,
 }: {
   label: string;
   options: { value: T; label: string }[];
@@ -23,6 +24,8 @@ export function ChipGroup<T extends string>({
   onBlur?: () => void;
   error?: string;
   id?: string;
+  /** 8 px from label to chips (W16 topic) instead of the form cards' 20 px. */
+  tight?: boolean;
 }) {
   const autoId = useId();
   const groupId = id ?? autoId;
@@ -65,7 +68,7 @@ export function ChipGroup<T extends string>({
         aria-labelledby={labelId}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className="mt-[14px] flex flex-wrap gap-s"
+        className={`${tight ? 'mt-[2px]' : 'mt-[14px]'} flex flex-wrap gap-s`}
         onBlur={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onBlur?.();
         }}

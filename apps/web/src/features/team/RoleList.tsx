@@ -31,8 +31,10 @@ export function RoleList({
         return (
           <li
             key={role.id}
-            className={`rounded-card p-l ${
-              isOpen ? 'border-2 border-deep bg-white' : 'border-[1.5px] border-line bg-page'
+            className={`rounded-card edge ${
+              isOpen
+                ? 'bg-white p-[26px] [--edge-w:2px] [--edge:var(--color-deep)]'
+                : 'bg-page p-[25.5px]'
             }`}
           >
             <h3>

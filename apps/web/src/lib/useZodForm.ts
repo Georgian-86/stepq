@@ -38,9 +38,10 @@ export interface ZodFormOptions<S extends AnyObject> {
 }
 
 /**
- * Form state validated by a shared zod schema. Fields validate on blur and all at once on
- * submit. `requestId` (the server's idempotency key) is created once per form instance, kept
- * across retries of a failed submit, and renewed only after a successful one.
+ * Form state validated by a shared zod schema. Fields validate on blur once filled in (and on
+ * change while they show an error) and all at once on submit. `requestId` (the server's idempotency key) is
+ * created once per form instance, kept across retries of a failed submit, and renewed only
+ * after a successful one.
  */
 export function useZodForm<S extends AnyObject>(
   schema: S,
@@ -63,16 +64,18 @@ export function useZodForm<S extends AnyObject>(
     [],
   );
 
-  const setValue = useCallback(<K extends keyof Values<S> & string>(key: K, value: unknown) => {
-    setValues((prev) => {
-      const next = { ...prev, [key]: value };
-      valuesRef.current = next;
-      return next;
-    });
-  }, []);
+  const errorsRef = useRef(errors);
+  errorsRef.current = errors;
 
+  /**
+   * Validates one field (on blur, or on change while it shows an error). An empty field with no
+   * error is left alone: leaving it untouched (e.g. tapping Cancel) must not pop an error that
+   * moves the layout under the pointer. Submit still reports it.
+   */
   const validateField = useCallback(
     (key: string) => {
+      const value = (valuesRef.current as Record<string, unknown>)[key];
+      if ((value === undefined || value === '') && !errorsRef.current[key]) return;
       const res = schema.safeParse(payload(valuesRef.current));
       const message = res.success ? undefined : issuesToErrors(res.error.issues)[key];
       setErrors((prev) => {
@@ -84,6 +87,21 @@ export function useZodForm<S extends AnyObject>(
       });
     },
     [schema, payload],
+  );
+
+  /**
+   * Sets a value. A field already showing an error is re-validated at once, so the error goes
+   * away while the person fixes it, not on blur: a blur-time layout jump would move the chip or
+   * button they are clicking out from under the pointer and swallow the click.
+   */
+  const setValue = useCallback(
+    <K extends keyof Values<S> & string>(key: K, value: unknown) => {
+      const next = { ...valuesRef.current, [key]: value };
+      valuesRef.current = next;
+      setValues(next);
+      if (errorsRef.current[key]) validateField(key);
+    },
+    [validateField],
   );
 
   /** Element id for a field key (`<idPrefix>-<key>`, or the key itself without a prefix). */

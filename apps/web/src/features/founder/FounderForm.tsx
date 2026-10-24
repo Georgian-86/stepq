@@ -86,8 +86,15 @@ export function FounderForm({
         onChange={(v) => form.setValue('topic', v)}
         onBlur={() => form.validateField('topic')}
         error={errors.topic}
+        tight
       />
-      <TextArea label="Message" rows={3} {...form.field('message')} error={errors.message} />
+      <TextArea
+        label="Message"
+        rows={3}
+        controlClassName="h-[104px] px-[15.5px] py-[13.5px]"
+        {...form.field('message')}
+        error={errors.message}
+      />
       {/* Honeypot: invisible to people, tempting to bots. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
         <label>
@@ -103,7 +110,7 @@ export function FounderForm({
           {form.formError}
         </p>
       )}
-      <Button variant="text" className="self-start px-xs py-[10px]" onClick={onCancel}>
+      <Button variant="text" className="self-start" onClick={onCancel}>
         Cancel
       </Button>
       <p className="type-web-small text-muted">

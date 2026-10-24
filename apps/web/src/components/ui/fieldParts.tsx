@@ -25,9 +25,12 @@ export function FieldError({ id, children }: { id: string; children?: ReactNode 
   );
 }
 
-/** Rounded control shell (W04 select / textarea / file row): 12 px radius, 1.5 px line border. */
+/**
+ * Rounded control shell (W04 select / textarea): 12 px radius, 1.5 px line stroke (`edge`, so
+ * padding includes the 1.5 px), 2 px deep stroke on focus (W16).
+ */
 export function roundedControl(error?: string) {
-  return `w-full rounded-(--radius-s) border-[1.5px] bg-white type-web-body text-ink transition-colors duration-150 outline-none placeholder:text-muted ${
-    error ? 'border-tomato' : 'border-line focus-within:border-deep focus:border-deep'
+  return `w-full rounded-(--radius-s) edge bg-white type-web-body text-ink outline-none placeholder:text-muted focus:[--edge-w:2px] ${
+    error ? '[--edge:var(--color-tomato)]' : 'focus:[--edge:var(--color-deep)]'
   }`;
 }

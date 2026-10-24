@@ -53,7 +53,9 @@ export function LiveCount() {
             <span className={`col-start-1 row-start-1 ${one ? 'invisible' : ''}`}>{MANY}</span>
           </span>
         </span>
-        <span className="type-web-small-strong rounded-pill bg-leaf-soft px-s py-[2px] text-deep">
+        {/* Figma fills this with leaf-soft, where deep text is 4.49:1 (under WCAG AA 4.5:1);
+            mint keeps the look at 4.63:1. */}
+        <span className="type-web-small-strong rounded-pill bg-mint px-s py-[2px] text-deep">
           Live
         </span>
       </div>

@@ -53,6 +53,31 @@ describe('useZodForm', () => {
     expect(screen.getByTestId('name-error')).toHaveTextContent('');
   });
 
+  it('leaving an empty field shows no error, so nothing moves under a click', async () => {
+    // e.g. the founder modal opens with focus in "Your name"; tapping Cancel blurs it first.
+    const user = userEvent.setup();
+    render(<Form send={vi.fn()} />);
+    await user.click(screen.getByLabelText('Name'));
+    await user.tab();
+    expect(screen.getByTestId('name-error')).toBeEmptyDOMElement();
+  });
+
+  it('clears a shown error as soon as the value is fixed, before blur', async () => {
+    // Otherwise the error (and the summary entry) vanish on blur, the layout jumps under the
+    // pointer and the click that caused the blur (a chip, Send) lands on nothing.
+    const user = userEvent.setup();
+    render(<Form send={vi.fn()} />);
+    await user.click(screen.getByRole('button', { name: 'Send' }));
+    expect(screen.getByTestId('name-error')).toHaveTextContent('Enter your name');
+    await user.type(screen.getByLabelText('Name'), 'Riya');
+    expect(screen.getByTestId('name-error')).toBeEmptyDOMElement();
+    // While still invalid, the shown error stays.
+    await user.type(screen.getByLabelText('Email'), 'riya@');
+    expect(screen.getByTestId('email-error')).toHaveTextContent('Enter a valid email');
+    await user.type(screen.getByLabelText('Email'), 'example.com');
+    expect(screen.getByTestId('email-error')).toBeEmptyDOMElement();
+  });
+
   it('shows every error on submit without calling send', async () => {
     const user = userEvent.setup();
     const send = vi.fn();

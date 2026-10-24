@@ -1,10 +1,14 @@
 'use client';
 
 import { useId, type ReactNode } from 'react';
+import { HIT_44 } from '@/components/site/links';
 import { Icon } from './Icon';
 import { FieldError } from './fieldParts';
 
-/** 22 px deep-green checkbox with the Figma check (W09 T&C). `children` follow the label (e.g. a link). */
+/**
+ * 22 px deep-green checkbox with the Figma check (W06, W09 T&C). The row is as tall as Figma's
+ * (22 px); the label's tap target still reaches 44 px. `children` follow the label (e.g. a link).
+ */
 export function Checkbox({
   label,
   checked,
@@ -30,9 +34,9 @@ export function Checkbox({
       <div className="flex flex-wrap items-center gap-x-[10px]">
         <label
           htmlFor={inputId}
-          className="flex min-h-[44px] cursor-pointer items-center gap-[10px]"
+          className={`flex cursor-pointer items-center gap-[10px] ${HIT_44}`}
         >
-          <span className="relative inline-flex size-[22px] shrink-0">
+          <span className="relative z-10 inline-flex size-[22px] shrink-0">
             <input
               id={inputId}
               name={name}
@@ -45,12 +49,12 @@ export function Checkbox({
             />
             <span
               aria-hidden="true"
-              className={`pointer-events-none inline-flex size-[22px] items-center justify-center rounded-check border-[1.5px] transition-colors duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-deep ${
+              className={`pointer-events-none inline-flex size-[22px] items-center justify-center rounded-check edge transition-colors duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-deep ${
                 checked
-                  ? 'border-deep bg-deep'
+                  ? 'bg-deep [--edge:var(--color-deep)]'
                   : error
-                    ? 'border-tomato bg-white'
-                    : 'border-line bg-white'
+                    ? 'bg-white [--edge:var(--color-tomato)]'
+                    : 'bg-white'
               }`}
             >
               {checked && <Icon name="check-white" />}

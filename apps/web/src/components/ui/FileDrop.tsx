@@ -54,8 +54,8 @@ export function FileDrop({
     <div className="flex flex-col gap-[6px]">
       <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
       <div
-        className={`relative flex items-center gap-[12px] rounded-(--radius-s) border-[1.5px] bg-mint p-m transition-colors duration-150 focus-within:border-deep ${
-          error ? 'border-tomato' : 'border-line'
+        className={`relative flex items-center gap-[12px] rounded-(--radius-s) edge bg-mint p-[17.5px] ${
+          error ? '[--edge:var(--color-tomato)]' : 'focus-within:[--edge:var(--color-deep)]'
         }`}
       >
         <Icon name="upload-deep" />

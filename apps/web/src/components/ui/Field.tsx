@@ -6,6 +6,8 @@ import { FieldError } from './fieldParts';
 /**
  * Underlined text field (Figma `4:135`). Caps label above; 1.5 px line underline that grows
  * into a 2 px deep-green bar on focus (scaleX, transform only); error = tomato bar + helper.
+ * As in Figma, the field is 63.5 px tall, 64 px while focused or in error (2 px underline).
+ * The underline is an inset shadow over the bottom padding: a 1.5 px border renders 1 px.
  */
 export function Field({
   label,
@@ -27,7 +29,9 @@ export function Field({
       <label htmlFor={inputId} className="type-label text-muted">
         {label}
       </label>
-      <div className="group relative border-b-[1.5px] border-line">
+      <div
+        className={`group relative edge-b ${error ? 'pb-[2px]' : 'pb-[1.5px] focus-within:pb-[2px]'}`}
+      >
         <input
           ref={ref}
           id={inputId}
@@ -38,7 +42,7 @@ export function Field({
         />
         <span
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-x-0 -bottom-[1.5px] h-[2px] origin-left transition-transform duration-200 ease-out ${
+          className={`pointer-events-none absolute inset-x-0 bottom-0 h-[2px] origin-left transition-transform duration-200 ease-out ${
             error ? 'scale-x-100 bg-tomato' : 'scale-x-0 bg-deep group-focus-within:scale-x-100'
           }`}
         />

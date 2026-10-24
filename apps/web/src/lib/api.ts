@@ -1,7 +1,5 @@
 import type { Api, ApiErrorDetails, ApiName } from '@stepq/schemas';
-import { FirebaseError } from 'firebase/app';
-import { httpsCallable } from 'firebase/functions';
-import { functions, initAppCheck } from './firebase';
+import type { FirebaseError } from 'firebase/app';
 
 export const GENERIC_ERROR = 'Something went wrong. Please try again.';
 export const RATE_LIMIT_ERROR = 'Too many tries. Please wait a few minutes.';
@@ -34,8 +32,17 @@ function isFieldDetails(d: unknown): d is ApiErrorDetails {
   );
 }
 
+/** Checked by name: importing the FirebaseError class would pull Firebase into the first load. */
+function isFirebaseError(e: unknown): e is FirebaseError {
+  return (
+    e instanceof Error &&
+    e.name === 'FirebaseError' &&
+    typeof (e as FirebaseError).code === 'string'
+  );
+}
+
 export function toApiError(e: unknown): Error {
-  if (!(e instanceof FirebaseError)) return new Error(GENERIC_ERROR);
+  if (!isFirebaseError(e)) return new Error(GENERIC_ERROR);
   const code = e.code.replace(/^functions\//, '');
   const details = (e as FirebaseError & { details?: unknown }).details;
   if (code === 'invalid-argument' && isFieldDetails(details))
@@ -45,10 +52,18 @@ export function toApiError(e: unknown): Error {
   return new Error(GENERIC_ERROR);
 }
 
+/**
+ * Calls a callable Function. Firebase is loaded on first use, so it stays out of the first
+ * paint of every page with a form (Lighthouse: the SDK is the largest part of the bundle).
+ */
 export async function call<K extends ApiName>(name: K, data: Api[K]['in']): Promise<Api[K]['out']> {
-  initAppCheck();
-  const fn = httpsCallable<Api[K]['in'], Api[K]['out']>(functions, name);
   try {
+    const [{ httpsCallable }, { functions, initAppCheck }] = await Promise.all([
+      import('firebase/functions'),
+      import('./firebase'),
+    ]);
+    initAppCheck();
+    const fn = httpsCallable<Api[K]['in'], Api[K]['out']>(functions, name);
     const res = await fn(data);
     return res.data;
   } catch (e) {

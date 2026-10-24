@@ -179,10 +179,10 @@ export function FundForm() {
             <a href={payment.upiLink} className={buttonClass('primary', 'w-full')}>
               Open UPI app
             </a>
-            <Button variant="text" className="min-h-[44px] w-full" onClick={paid}>
+            <Button variant="text" className="w-full" onClick={paid}>
               I&apos;ve paid
             </Button>
-            <Button variant="text" className="min-h-[44px] px-xs py-[10px]" onClick={close}>
+            <Button variant="text" onClick={close}>
               Back
             </Button>
           </div>

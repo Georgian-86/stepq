@@ -39,6 +39,19 @@
   }
 }
 
+/*
+ * Figma's 1.5 px strokes. Chromium rounds border widths down to whole device pixels (1.5 → 1 at
+ * 1×), which made every stroked box shorter than its Figma frame. `edge` / `edge-b` draw the exact
+ * stroke as an inset shadow; the element's padding keeps the stroke's space (e.g. 24 + 1.5).
+ * Colour: --edge (default line), width: --edge-w (default 1.5 px).
+ */
+@utility edge {
+  box-shadow: inset 0 0 0 var(--edge-w, 1.5px) var(--edge, var(--color-line));
+}
+@utility edge-b {
+  box-shadow: inset 0 calc(-1 * var(--edge-w, 1.5px)) 0 var(--edge, var(--color-line));
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;

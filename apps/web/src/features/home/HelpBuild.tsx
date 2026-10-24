@@ -49,7 +49,7 @@ export function HelpBuild() {
           {WAYS.map((w, i) => (
             <li key={w.title}>
               <Reveal index={i}>
-                <div className="flex flex-col items-start gap-[14px] rounded-l border-[1.5px] border-line bg-white p-xl">
+                <div className="flex flex-col items-start gap-[14px] rounded-l edge bg-white p-[33.5px]">
                   <span className="flex rounded-pill bg-mango-soft p-[12px]">
                     <Icon name={w.icon} />
                   </span>
