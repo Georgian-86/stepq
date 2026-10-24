@@ -20,8 +20,9 @@ export default defineConfig({
   timeout: 60_000,
   expect: {
     timeout: 10_000,
-    // Visual parity baselines are the Figma exports (copied from e2e/figma), named per frame.
-    toHaveScreenshot: { pathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{ext}' },
+    // Visual parity baselines ARE the Figma exports in e2e/figma (w01.png …). Never run
+    // visual.spec.ts with -u / --update-snapshots: it would overwrite the Figma references.
+    toHaveScreenshot: { pathTemplate: '{testDir}/figma/{arg}{ext}' },
   },
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {

@@ -176,7 +176,7 @@ test.describe('keyboard only', () => {
 
   test('waitlist → reserve a username → W03', async ({ page }) => {
     await page.goto('/');
-    // From the top of the page: skip link, then the nav CTA jumps to the waitlist card.
+    // The first Tab reaches the skip link; Tab on through the nav and hero to the card's first field.
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
     const card = page.locator('#waitlist');
@@ -271,6 +271,9 @@ test.describe('reduced motion', () => {
   const pages = [
     '/',
     '/?modal=founder',
+    '/fund',
+    '/join-the-team',
+    '/ambassadors',
     '/join-the-team/sent?name=Riya&role=marketing',
     '/fund/thank-you?amount=501',
     '/ambassadors/received?name=Riya',
@@ -291,4 +294,33 @@ test.describe('reduced motion', () => {
       expect(running).toEqual([]);
     });
   }
+});
+
+test.describe('forced colours (Windows High Contrast)', () => {
+  test('field underlines, rounded controls and the checkbox stay visible', async ({ page }) => {
+    await page.emulateMedia({ forcedColors: 'active' });
+    await page.goto('/ambassadors');
+    const form = page.getByRole('form', { name: 'Apply' });
+    await expect(form.getByLabel('Full name')).toBeVisible();
+
+    // The drawn strokes are box-shadows, which forced colours remove: a real border remains.
+    const underline = await form.getByLabel('Full name').evaluate((el) => {
+      const s = getComputedStyle(el.parentElement!);
+      return { style: s.borderBottomStyle, width: parseFloat(s.borderBottomWidth) };
+    });
+    expect(underline).toEqual({ style: 'solid', width: 1 });
+    const textarea = await form.getByLabel('How will you promote StepQ?').evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { style: s.borderTopStyle, width: parseFloat(s.borderTopWidth) };
+    });
+    expect(textarea).toEqual({ style: 'solid', width: 1 });
+
+    // The checkbox: the native box is shown (the drawn one is a background and a white tick).
+    const box = form.getByRole('checkbox', { name: /I agree/ });
+    await expect(box).toBeVisible();
+    expect(await box.evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
+    expect((await box.boundingBox())!.width).toBeGreaterThanOrEqual(13);
+    await box.check();
+    await expect(box).toBeChecked();
+  });
 });

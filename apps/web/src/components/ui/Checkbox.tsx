@@ -8,6 +8,8 @@ import { FieldError } from './fieldParts';
 /**
  * 22 px deep-green checkbox with the Figma check (W06, W09 T&C). The row is as tall as Figma's
  * (22 px); the label's tap target still reaches 44 px. `children` follow the label (e.g. a link).
+ * In forced colours (Windows High Contrast) the native checkbox is shown instead: the drawn box
+ * is a background and a white tick, which the system palette would erase.
  */
 export function Checkbox({
   label,
@@ -45,11 +47,11 @@ export function Checkbox({
               onChange={(e) => onChange(e.target.checked)}
               aria-invalid={error ? true : false}
               aria-describedby={error ? errorId : undefined}
-              className="peer absolute inset-0 m-0 cursor-pointer opacity-0"
+              className="peer absolute inset-0 m-0 cursor-pointer opacity-0 forced-colors:opacity-100"
             />
             <span
               aria-hidden="true"
-              className={`pointer-events-none inline-flex size-[22px] items-center justify-center rounded-check edge transition-colors duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-deep ${
+              className={`pointer-events-none inline-flex size-[22px] forced-colors:invisible items-center justify-center rounded-check edge transition-colors duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-deep ${
                 checked
                   ? 'bg-deep [--edge:var(--color-deep)]'
                   : error

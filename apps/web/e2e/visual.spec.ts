@@ -1,14 +1,20 @@
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { resetEmulators, writeDoc } from './helpers/emulator';
 
 /**
  * Figma visual parity (spec §4). Each W1 frame's state is rendered at 1440 wide with reduced
- * motion and compared with the Figma export (`e2e/figma/*.png`, copied as the baselines in
- * `visual.spec.ts-snapshots/`). The Figma sample values (12,480 people, #12,481, the backer
- * names) exist only in the emulator inside these tests. Modal frames are drawn in Figma over a
- * blank page, so the page behind the dialog is hidden here.
+ * motion and compared with the Figma export itself (`e2e/figma/*.png` is the baseline, see
+ * playwright.config.ts). NEVER run this spec with `-u` / `--update-snapshots`: that would
+ * overwrite the Figma references with our own render. The Figma sample values (12,480 people,
+ * #12,481, the backer names) exist only in the emulator inside these tests. Modal frames are
+ * drawn in Figma over a blank page, so the page behind the dialog is hidden here.
+ *
+ * The 2 % pixel budget alone can miss whole light sections (mint cards on white sit inside the
+ * comparison threshold), so every test first asserts the frame's structure: headings, cards,
+ * fields and buttons are there and actually painted.
+ *
  * The 390 px pass saves screenshots to `e2e/artifacts/` for review; it asserts nothing.
  */
 
@@ -128,6 +134,203 @@ async function fillFounder(page: Page) {
   return modal;
 }
 
+/**
+ * Visible and actually painted. Playwright's toBeVisible ignores opacity, so a section faded
+ * out (e.g. a Reveal that never ran) would still count as visible.
+ */
+async function expectShown(...locators: Locator[]) {
+  for (const l of locators) {
+    await expect(l).toBeVisible();
+    const opacity = await l.evaluate((el) => {
+      let o = 1;
+      for (let n: Element | null = el; n; n = n.parentElement)
+        o *= Number(getComputedStyle(n).opacity);
+      return o;
+    });
+    expect(opacity, `${l} is transparent`).toBeGreaterThan(0.99);
+  }
+}
+
+/** Every match of `l` (exactly `count` of them) is shown. */
+async function expectAllShown(l: Locator, count: number) {
+  await expect(l).toHaveCount(count);
+  for (let i = 0; i < count; i++) await expectShown(l.nth(i));
+}
+
+const h = (scope: Page | Locator, name: string, level?: number) =>
+  scope.getByRole('heading', { name, exact: true, ...(level ? { level } : {}) });
+
+/** Nav and footer of every page frame. */
+async function expectChrome(page: Page) {
+  const nav = page.getByRole('navigation', { name: 'Main' });
+  await expectShown(
+    nav.getByRole('link', { name: 'StepQ home' }),
+    nav.getByRole('link', { name: 'Join the team' }),
+    nav.getByRole('link', { name: 'Fund StepQ' }),
+    nav.getByRole('link', { name: 'Ambassadors' }),
+    page.getByRole('banner').getByRole('link', { name: 'Join the waitlist' }),
+  );
+  const footer = page.getByRole('contentinfo');
+  await expectShown(h(footer, 'Get involved'), h(footer, 'Company'), h(footer, 'Contact'));
+  await expectAllShown(footer.getByRole('link'), await footer.getByRole('link').count());
+  expect(await footer.getByRole('link').count()).toBeGreaterThanOrEqual(7);
+}
+
+async function expectW01(page: Page) {
+  await expectChrome(page);
+  await expectShown(
+    page.getByText('Launching soon on Android and iPhone'),
+    h(page, 'Walking, made a happy daily habit.', 1),
+    page.getByText('Piko pays you to walk.'),
+    page.getByRole('status').filter({ hasText: '12,480 people have joined the waitlist' }),
+  );
+  const card = page.locator('#waitlist');
+  await expectShown(
+    h(card, 'Join the waitlist', 2),
+    card.getByLabel('Full name'),
+    card.getByLabel('Email'),
+    card.getByRole('button', { name: 'Join the waitlist' }),
+    card.getByText('We only email you about StepQ. No spam, ever.'),
+  );
+  await expectAllShown(card.getByRole('radiogroup', { name: 'Gender' }).getByRole('radio'), 4);
+  await expectAllShown(card.getByRole('radiogroup', { name: 'Age group' }).getByRole('radio'), 6);
+
+  const how = page.getByRole('region', { name: 'How StepQ works' });
+  await expectShown(h(how, 'How StepQ works', 2));
+  await expectAllShown(how.getByRole('heading', { level: 3 }), 3);
+  await expectShown(
+    h(how, 'Hit your StepQ score'),
+    h(how, 'Earn while you walk'),
+    h(how, 'Walk together'),
+  );
+
+  const help = page.getByRole('region', { name: 'Help build StepQ before launch' });
+  await expectShown(
+    h(help, 'Help build StepQ before launch', 2),
+    help.getByText('Three ways to be part of StepQ from day one.'),
+  );
+  for (const [title, cta] of [
+    ['Join the team', 'See open roles'],
+    ['Fund StepQ', 'Fund StepQ'],
+    ['Become an ambassador', 'Apply to be an ambassador'],
+  ] as const) {
+    const cardItem = help.getByRole('listitem').filter({ has: h(page, title, 3) });
+    await expectShown(h(cardItem, title, 3), cardItem.getByRole('link', { name: cta }));
+  }
+  const wall = page.getByRole('region', { name: 'Our early backers' });
+  await expectShown(h(wall, 'Our early backers'));
+  await expectAllShown(wall.getByRole('listitem'), 10);
+  await expectShown(
+    h(page, 'Talk to the founder', 3),
+    page.getByRole('link', { name: 'Connect with the founder' }),
+  );
+}
+
+async function expectTeamPage(page: Page) {
+  await expectChrome(page);
+  await expectShown(h(page, 'Join the StepQ team', 1), h(page, 'Open roles', 2));
+  const roles = page
+    .getByRole('button', { expanded: true })
+    .or(page.getByRole('button', { expanded: false }));
+  await expectAllShown(roles.filter({ hasText: /intern/ }), 4);
+  await expectShown(page.locator('#role-marketing-jd'));
+  const form = page.getByRole('form', { name: 'Apply now' });
+  await expectShown(
+    h(form, 'Apply now', 2),
+    form.getByLabel('Full name'),
+    form.getByLabel('Email'),
+    form.getByLabel('Contact number'),
+    form.getByLabel('Position applied for'),
+    form.getByText('Riya_Sharma_Resume.pdf'),
+    form.getByLabel('LinkedIn or portfolio (optional)'),
+    form.getByLabel('Why StepQ?'),
+    form.getByRole('button', { name: 'Submit application' }),
+  );
+}
+
+async function expectFundPage(page: Page) {
+  await expectChrome(page);
+  await expectShown(h(page, 'Fund StepQ', 1));
+  for (const step of [
+    'Fill in your details',
+    'Pay with any UPI app',
+    'StepQ verifies and emails you',
+  ])
+    await expectShown(h(page, step, 2));
+  const scan = page.getByRole('region', { name: 'Or scan to pay right now' });
+  await expectShown(
+    h(scan, 'Or scan to pay right now'),
+    scan.getByRole('img', { name: /QR code/ }),
+    scan.getByText('bhakti0parmar1@oksbi'),
+  );
+  const form = page.getByRole('form', { name: 'Your details' });
+  await expectShown(
+    h(form, 'Your details', 2),
+    form.getByLabel('Name', { exact: true }),
+    form.getByLabel('Contact number'),
+    form.getByLabel('Or enter an amount (₹)'),
+    form.getByText('Show my name on the sponsor wall'),
+    form.getByRole('button', { name: 'Pay ₹501 with UPI' }),
+  );
+  await expectAllShown(form.getByRole('radiogroup', { name: 'Amount' }).getByRole('radio'), 5);
+}
+
+async function expectAmbassadorPage(page: Page) {
+  await expectChrome(page);
+  await expectShown(
+    h(page, 'Become a StepQ ambassador', 1),
+    h(page, 'What ambassadors do', 2),
+    h(page, 'Who can apply', 2),
+  );
+  const duties = page
+    .getByRole('region', { name: 'Become a StepQ ambassador' })
+    .getByRole('listitem');
+  await expectAllShown(duties, 3);
+  const form = page.getByRole('form', { name: 'Apply' });
+  await expectShown(
+    h(form, 'Apply', 2),
+    form.getByLabel('Full name'),
+    form.getByLabel('Email'),
+    form.getByLabel('Contact number'),
+    form.getByLabel('City'),
+    form.getByLabel('Instagram handle'),
+    form.getByLabel('College or company'),
+    form.getByLabel('How will you promote StepQ?'),
+    form.getByText('I agree to the ambassador'),
+    form.getByRole('link', { name: 'Terms & Conditions' }),
+    form.getByRole('button', { name: 'Apply to be an ambassador' }),
+  );
+  await expectAllShown(form.getByRole('radiogroup', { name: 'Followers' }).getByRole('radio'), 4);
+}
+
+/** W05, W08, W11: Piko, title, message and the way home. */
+async function expectConfirmation(page: Page, title: string, message: string) {
+  await expectChrome(page);
+  await expectShown(
+    h(page, title, 1),
+    page.getByRole('main').getByText(message),
+    page.getByRole('main').getByRole('link', { name: 'Back to home' }),
+  );
+}
+
+async function expectFounderModal(modal: Locator) {
+  await expectShown(
+    h(modal, 'Connect with the founder', 2),
+    modal.getByText('Ideas, partnerships, feedback or investment?'),
+    modal.getByLabel('Your name'),
+    modal.getByLabel('Email'),
+    modal.getByLabel('Phone (optional)'),
+    modal.getByLabel('Message'),
+    modal.getByRole('button', { name: 'Send to the founder' }),
+    modal.getByRole('button', { name: 'Cancel' }),
+    modal.getByText('Your message is emailed to connect@stepq.in.'),
+  );
+  await expectAllShown(
+    modal.getByRole('radiogroup', { name: 'What is it about?' }).getByRole('radio'),
+    5,
+  );
+}
+
 test.describe('Figma parity at 1440', () => {
   test.skip(({ isMobile }) => isMobile, 'Figma W frames are 1440 wide');
 
@@ -139,6 +342,7 @@ test.describe('Figma parity at 1440', () => {
     await expect(page.getByText('Meghna V.')).toBeVisible();
     await fillWaitlist(page);
     await settled(page);
+    await expectW01(page);
     await expect(page).toHaveScreenshot('w01.png', PARITY);
   });
 
@@ -147,6 +351,16 @@ test.describe('Figma parity at 1440', () => {
     await openW02(page);
     await onlyDialog(page);
     await settled(page);
+    const w02 = page.getByRole('dialog', { name: "You're on the list!" });
+    await expectShown(
+      h(w02, "You're on the list!", 2),
+      w02.getByText("You're #12,481."),
+      h(w02, 'Reserve your username', 3),
+      w02.getByLabel('Username'),
+      w02.getByText('Available', { exact: true }),
+      w02.getByRole('button', { name: 'Reserve @riya.walks' }),
+      w02.getByRole('button', { name: 'Maybe later' }),
+    );
     await expect(page).toHaveScreenshot('w02.png', MODAL_PARITY);
   });
 
@@ -158,6 +372,13 @@ test.describe('Figma parity at 1440', () => {
     await onlyDialog(page);
     await page.mouse.move(0, 0);
     await settled(page);
+    const w03 = page.getByRole('dialog', { name: '@riya.walks is yours' });
+    await expectShown(
+      h(w03, '@riya.walks is yours', 2),
+      w03.getByText("It'll be waiting for you when you sign up with"),
+      w03.getByRole('button', { name: /stepq\.in\/join/ }),
+      w03.getByRole('button', { name: 'Done' }),
+    );
     await expect(page).toHaveScreenshot('w03.png', MODAL_PARITY);
   });
 
@@ -166,6 +387,7 @@ test.describe('Figma parity at 1440', () => {
     await page.goto('/join-the-team');
     await fillTeam(page);
     await settled(page);
+    await expectTeamPage(page);
     await expect(page).toHaveScreenshot('w04.png', PARITY);
   });
 
@@ -176,6 +398,11 @@ test.describe('Figma parity at 1440', () => {
     await page.goto('/join-the-team/sent?name=Riya&role=marketing');
     await expect(page.getByText(`reply to ${EMAIL}`)).toBeVisible();
     await settled(page);
+    await expectConfirmation(
+      page,
+      'Application sent',
+      'Thanks, Riya. StepQ will review your application for Marketing intern',
+    );
     await expect(page).toHaveScreenshot('w05.png', PARITY);
   });
 
@@ -184,6 +411,7 @@ test.describe('Figma parity at 1440', () => {
     await page.goto('/fund');
     await fillFund(page);
     await settled(page);
+    await expectFundPage(page);
     await expect(page).toHaveScreenshot('w06.png', PARITY);
   });
 
@@ -196,6 +424,15 @@ test.describe('Figma parity at 1440', () => {
     await onlyDialog(page);
     await page.mouse.move(0, 0);
     await settled(page);
+    const w07 = page.getByRole('dialog', { name: 'Scan to pay ₹501' });
+    await expectShown(
+      h(w07, 'Scan to pay ₹501', 2),
+      w07.getByText('Open any UPI app on your phone and scan this code.'),
+      w07.getByRole('img', { name: /QR code/ }),
+      w07.getByText('bhakti0parmar1@oksbi'),
+      w07.getByRole('button', { name: "I've paid" }),
+      w07.getByRole('button', { name: 'Cancel' }),
+    );
     await expect(page).toHaveScreenshot('w07.png', MODAL_PARITY);
   });
 
@@ -204,6 +441,11 @@ test.describe('Figma parity at 1440', () => {
     await page.goto('/fund/thank-you?amount=501');
     await expect(page.getByText('₹501')).toBeVisible();
     await settled(page);
+    await expectConfirmation(
+      page,
+      'Thank you for backing StepQ',
+      'We have recorded your payment of ₹501.',
+    );
     await expect(page).toHaveScreenshot('w08.png', PARITY);
   });
 
@@ -212,6 +454,7 @@ test.describe('Figma parity at 1440', () => {
     await page.goto('/ambassadors');
     await fillAmbassador(page);
     await settled(page);
+    await expectAmbassadorPage(page);
     await expect(page).toHaveScreenshot('w09.png', PARITY);
   });
 
@@ -223,6 +466,13 @@ test.describe('Figma parity at 1440', () => {
     await page.mouse.move(0, 0);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await settled(page);
+    const w10 = page.getByRole('dialog', { name: 'Ambassador Terms & Conditions' });
+    await expectShown(
+      h(w10, 'Ambassador Terms & Conditions', 2),
+      w10.getByRole('button', { name: 'Close' }),
+      w10.getByRole('button', { name: 'I agree' }),
+    );
+    await expectAllShown(w10.getByRole('heading', { level: 3 }), 5);
     await expect(page).toHaveScreenshot('w10.png', MODAL_PARITY);
   });
 
@@ -231,6 +481,11 @@ test.describe('Figma parity at 1440', () => {
     await page.goto('/ambassadors/received?name=Riya');
     await expect(page.getByText('Thanks, Riya.')).toBeVisible();
     await settled(page);
+    await expectConfirmation(
+      page,
+      'Application received',
+      'Thanks, Riya. StepQ will review your application.',
+    );
     await expect(page).toHaveScreenshot('w11.png', PARITY);
   });
 
@@ -241,6 +496,7 @@ test.describe('Figma parity at 1440', () => {
     await expect(modal).toBeVisible();
     await onlyDialog(page);
     await settled(page);
+    await expectFounderModal(modal);
     await expect(page).toHaveScreenshot('w16.png', MODAL_PARITY);
   });
 
@@ -254,6 +510,12 @@ test.describe('Figma parity at 1440', () => {
     await page.mouse.move(0, 0);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await settled(page);
+    const w17 = page.getByRole('dialog', { name: 'Message sent' });
+    await expectShown(
+      h(w17, 'Message sent', 2),
+      w17.getByText('Thanks, Riya. Your message is on its way to connect@stepq.in.'),
+      w17.getByRole('button', { name: 'Back to StepQ' }),
+    );
     await expect(page).toHaveScreenshot('w17.png', MODAL_PARITY);
   });
 });

@@ -51,6 +51,27 @@
 @utility edge-b {
   box-shadow: inset 0 calc(-1 * var(--edge-w, 1.5px)) 0 var(--edge, var(--color-line));
 }
+/*
+ * Forced colours (Windows High Contrast) drop box-shadows, so `edge` strokes would vanish:
+ * draw real system-colour borders there, and mark focus with Highlight (the deep focus bar is a
+ * background, which is forced away too).
+ */
+@media (forced-colors: active) {
+  .edge {
+    border: 1px solid CanvasText;
+  }
+  .edge-b {
+    border-bottom: 1px solid CanvasText;
+  }
+  .edge:focus-within,
+  .edge:focus {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+  }
+  .edge-b:focus-within {
+    border-bottom: 2px solid Highlight;
+  }
+}
 
 @layer base {
   html {
