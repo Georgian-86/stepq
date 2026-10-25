@@ -11,7 +11,7 @@ vi.mock('@/lib/api', async (orig) => ({ ...(await orig<object>()), call }));
 vi.mock('@/lib/firebase', () => ({ functions: {}, db: {}, initAppCheck: vi.fn() }));
 
 const { WaitlistProvider } = await import('./WaitlistState');
-const { WaitlistPopup, POPUP_DELAY_MS, SNOOZE_KEY, SHOWN_KEY } = await import('./WaitlistPopup');
+const { WaitlistPopup, POPUP_DELAY_MS } = await import('./WaitlistPopup');
 
 function renderPopup(extra?: React.ReactNode) {
   return render(
@@ -42,33 +42,22 @@ describe('WaitlistPopup', () => {
     expect(popup()).toBeNull();
     act(() => vi.advanceTimersByTime(1));
     expect(popup()).not.toBeNull();
-    expect(window.sessionStorage.getItem(SHOWN_KEY)).toBe('1');
   });
 
-  it('"Not now" closes it and snoozes it for a week', () => {
-    renderPopup();
+  it('comes back on every load, even after "Not now"', () => {
+    const a = renderPopup();
     act(() => vi.advanceTimersByTime(POPUP_DELAY_MS));
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
     act(() => vi.advanceTimersByTime(500));
     expect(popup()).toBeNull();
-    expect(Number(window.localStorage.getItem(SNOOZE_KEY))).toBeGreaterThan(0);
-  });
-
-  it('stays away when snoozed, already shown this visit, or already joined', () => {
-    window.localStorage.setItem(SNOOZE_KEY, String(Date.now()));
-    const a = renderPopup();
-    act(() => vi.advanceTimersByTime(POPUP_DELAY_MS));
-    expect(popup()).toBeNull();
     a.unmount();
 
-    window.localStorage.clear();
-    window.sessionStorage.setItem(SHOWN_KEY, '1');
-    const b = renderPopup();
+    renderPopup(); // a refresh
     act(() => vi.advanceTimersByTime(POPUP_DELAY_MS));
-    expect(popup()).toBeNull();
-    b.unmount();
+    expect(popup()).not.toBeNull();
+  });
 
-    window.sessionStorage.clear();
+  it('stays away for someone who already joined', () => {
     window.sessionStorage.setItem(
       'stepq.waitlist',
       JSON.stringify({ status: 'joined', position: 3, email: 'a@b.in' }),

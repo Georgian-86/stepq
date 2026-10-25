@@ -9,33 +9,25 @@ import { useWaitlist } from './WaitlistState';
 
 /** How long after landing the pop-up appears (client request). */
 export const POPUP_DELAY_MS = 5000;
-/** After someone closes it, it stays away this long. */
-export const POPUP_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
-export const SHOWN_KEY = 'stepq.popup.shown';
-export const SNOOZE_KEY = 'stepq.popup.snoozedAt';
 /** Lets the end-to-end test see the pop-up in an automated browser. */
 export const FORCE_KEY = 'stepq.popup.force';
 
 /** Pages where a sales pop-up would get in the way. */
 const QUIET_PATHS = [/^\/confirm/, /^\/privacy/, /\/sent$/, /\/thank-you$/, /\/received$/];
 
-function storage(kind: 'local' | 'session'): Storage | null {
+function forced(): boolean {
   try {
-    return kind === 'local' ? window.localStorage : window.sessionStorage;
+    return window.localStorage.getItem(FORCE_KEY) === '1';
   } catch {
-    return null;
+    return false;
   }
 }
 
 /** Whether, right now, the pop-up may open. Re-checked when the timer fires. */
-export function popupAllowed(pathname: string, now = Date.now()): boolean {
+export function popupAllowed(pathname: string): boolean {
   if (QUIET_PATHS.some((re) => re.test(pathname))) return false;
-  const forced = storage('local')?.getItem(FORCE_KEY) === '1';
   // Automated browsers (tests, Lighthouse, crawlers) don't get it unless a test asks.
-  if (navigator.webdriver && !forced) return false;
-  if (storage('session')?.getItem(SHOWN_KEY)) return false;
-  const snoozed = Number(storage('local')?.getItem(SNOOZE_KEY) ?? 0);
-  if (snoozed && now - snoozed < POPUP_SNOOZE_MS) return false;
+  if (navigator.webdriver && !forced()) return false;
   // Not on top of another dialog, and not while someone is already using the page's form.
   if (document.querySelector('[role="dialog"]')) return false;
   if (new URLSearchParams(window.location.search).has('modal')) return false;
@@ -44,10 +36,10 @@ export function popupAllowed(pathname: string, now = Date.now()): boolean {
 }
 
 /**
- * The timed waitlist pop-up (client request, not in Figma): 5 s after landing, once per visit,
- * and not again for 7 days after it's closed. Skipped for people who already joined, who are
- * using the page's waitlist form, on quiet pages, and when another dialog is open. Joining
- * from it opens W02 (reserve a username) as usual.
+ * The timed waitlist pop-up (client request, not in Figma): 5 s after every page load,
+ * including refreshes; closing it hides it until the next load. Skipped for people who already
+ * joined, who are using the page's waitlist form, on quiet pages, and when another dialog is
+ * open. Joining from it opens W02 (reserve a username) as usual.
  */
 export function WaitlistPopup() {
   const pathname = usePathname();
@@ -64,7 +56,6 @@ export function WaitlistPopup() {
     document.addEventListener('focusin', onFocus);
     const t = window.setTimeout(() => {
       if (cancelled || !popupAllowed(pathname)) return;
-      storage('session')?.setItem(SHOWN_KEY, '1');
       setOpen(true);
     }, POPUP_DELAY_MS);
     return () => {
@@ -73,10 +64,7 @@ export function WaitlistPopup() {
     };
   }, [loaded, join, pathname]);
 
-  function dismiss() {
-    storage('local')?.setItem(SNOOZE_KEY, String(Date.now()));
-    setOpen(false);
-  }
+  const dismiss = () => setOpen(false);
 
   return (
     <Modal open={open} onClose={dismiss} labelledBy="popup-waitlist-title">

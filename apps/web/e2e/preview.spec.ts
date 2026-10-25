@@ -102,8 +102,19 @@ test('the waitlist pop-up opens after 5 s on any page and joins into W02', async
   await expect(w02(page)).toBeVisible();
   await expect(popup).toHaveCount(0);
 
-  // Once per visit: a reload doesn't bring it back.
+  // Joined: no more pop-ups on later loads.
   await page.goto('/fund');
   await page.waitForTimeout(6000);
   await expect(popup).toHaveCount(0);
+});
+
+test('the pop-up comes back on every refresh until someone joins', async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.setItem('stepq.popup.force', '1'));
+  await page.goto('/');
+  const popup = page.getByRole('dialog', { name: 'Join the waitlist' });
+  await expect(popup).toBeVisible({ timeout: 7000 });
+  await popup.getByRole('button', { name: 'Not now' }).click();
+  await expect(popup).toHaveCount(0);
+  await page.reload();
+  await expect(popup).toBeVisible({ timeout: 7000 });
 });
