@@ -7,6 +7,7 @@ import { ErrorSummary } from '@/components/ui/ErrorSummary';
 import { Field } from '@/components/ui/Field';
 import { TextArea } from '@/components/ui/TextArea';
 import { call } from '@/lib/api';
+import { PREVIEW_MODE, PREVIEW_NOTHING_SAVED } from '@/lib/preview';
 import { useZodForm } from '@/lib/useZodForm';
 
 export type Topic = (typeof TOPICS)[number];
@@ -114,7 +115,9 @@ export function FounderForm({
         Cancel
       </Button>
       <p className="type-web-small text-muted">
-        Your message is emailed to connect@stepq.in. StepQ never shares your details.
+        {PREVIEW_MODE
+          ? PREVIEW_NOTHING_SAVED
+          : 'Your message is emailed to connect@stepq.in. StepQ never shares your details.'}
       </p>
     </form>
   );

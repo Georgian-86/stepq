@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { useModalParam } from '@/lib/useModalParam';
 import { useWaitlist } from './WaitlistState';
+import { PREVIEW_MODE, PREVIEW_NOTHING_SAVED } from '@/lib/preview';
 
 const TITLE_ID = 'reserved-title';
 const INVITE_URL = 'https://stepq.in/join';
@@ -53,9 +54,11 @@ export function UsernameReservedModal() {
           @{username} is yours
         </h2>
         <p className="type-web-body text-muted">
-          {reservation?.email
-            ? `It'll be waiting for you when you sign up with ${reservation.email}.`
-            : "It'll be waiting for you when you sign up."}
+          {PREVIEW_MODE
+            ? PREVIEW_NOTHING_SAVED
+            : reservation?.email
+              ? `It'll be waiting for you when you sign up with ${reservation.email}.`
+              : "It'll be waiting for you when you sign up."}
         </p>
         <button
           type="button"

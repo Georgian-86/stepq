@@ -12,6 +12,8 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
+  // The preview smoke test needs a preview build: `pnpm e2e:preview` (playwright.preview.config.ts).
+  testIgnore: 'preview.spec.ts',
   // Every test resets the shared emulator, so tests run one at a time.
   fullyParallel: false,
   workers: 1,

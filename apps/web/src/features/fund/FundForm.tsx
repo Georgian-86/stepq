@@ -3,6 +3,7 @@
 import { AMOUNT_PRESETS, backingInput } from '@stepq/schemas';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type ChangeEvent } from 'react';
+import { PreviewNote } from '@/components/site/PreviewNote';
 import { Button, buttonClass } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { ChipGroup } from '@/components/ui/ChipGroup';
@@ -10,6 +11,7 @@ import { ErrorSummary } from '@/components/ui/ErrorSummary';
 import { Field } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
 import { call } from '@/lib/api';
+import { PREVIEW_UPI_NOTE } from '@/lib/preview';
 import { detectPlatform, type Platform } from '@/lib/platform';
 import { useZodForm } from '@/lib/useZodForm';
 import { formatInr, parseAmount, payLabel, thankYouHref } from './amount';
@@ -176,6 +178,7 @@ export function FundForm() {
         </div>
         {payment?.platform === 'android' ? (
           <div className="flex flex-col items-center gap-xs">
+            <PreviewNote className="w-full">{PREVIEW_UPI_NOTE}</PreviewNote>
             <a href={payment.upiLink} className={buttonClass('primary', 'w-full')}>
               Open UPI app
             </a>
