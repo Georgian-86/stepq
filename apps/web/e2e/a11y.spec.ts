@@ -29,6 +29,10 @@ async function expectNoSeriousViolations(page: Page) {
   );
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
+    // The only exemption: Piko's white handwritten note on the hero (about 2.3:1 on leaf). The
+    // client chose white over a passing ink version; it is aria-hidden decoration and the same
+    // words are given to assistive tech as text. Everything else is checked in full.
+    .exclude('[data-piko-handwriting]')
     .analyze();
   const serious = violations
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')

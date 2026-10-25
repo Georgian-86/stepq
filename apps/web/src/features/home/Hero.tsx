@@ -1,8 +1,8 @@
 import { GUTTER } from '@/components/site/links';
-import { Piko } from '@/components/site/Piko';
 import { Icon } from '@/components/ui/Icon';
 import { WaitlistCard } from '@/features/waitlist/WaitlistCard';
 import { LiveCount } from './LiveCount';
+import { PikoIntro } from './PikoIntro';
 
 /** W01 hero (`9:99`): copy, live count and walking Piko on leaf; the waitlist card on the right. */
 export function Hero() {
@@ -28,8 +28,8 @@ export function Hero() {
             friends, groups and QRuns near you. Join the waitlist and be first in.
           </p>
           <LiveCount />
-          <div className="flex items-end pt-s">
-            <Piko mood="cheer" size={264} motion="walk" className="max-lg:size-[160px]!" />
+          <div className="pt-s">
+            <PikoIntro />
           </div>
         </div>
         <div className="flex shrink-0 flex-col pb-[48px] lg:pb-[80px]">

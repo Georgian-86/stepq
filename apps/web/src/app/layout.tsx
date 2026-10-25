@@ -1,4 +1,5 @@
 import '@fontsource/fredoka/500.css';
+import '@fontsource/kalam/400.css';
 import '@fontsource/fredoka/600.css';
 import '@fontsource/nunito/400.css';
 import '@fontsource/nunito/700.css';

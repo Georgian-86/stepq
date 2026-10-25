@@ -44,6 +44,9 @@ importers:
       '@fontsource/fredoka':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/kalam':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/nunito':
         specifier: ^5.3.0
         version: 5.3.0
@@ -957,6 +960,9 @@ packages:
 
   '@fontsource/fredoka@5.3.0':
     resolution: {integrity: sha512-s2IhjQ50wDnKkkaKmjhtL0rxQg6ITsVusiipM3m7zUwVZZbbCKsscNDkngwp28xVzfIt7neWrkgU1qKqyTycQg==}
+
+  '@fontsource/kalam@5.3.0':
+    resolution: {integrity: sha512-FDkVoDfPDCSN/eO81FOYtUI67eMgpVBJmjBtAqSL0PmEhJyeFY2biC+CR+yEttksgXR9+swpFdYmQTyjwBq80Q==}
 
   '@fontsource/nunito@5.3.0':
     resolution: {integrity: sha512-vw9TaTQJ/zpEpKrsODuPmOvaVjXgdda6B+xXA4YqjrdeJ62MLgVoDerdRXFQHyBnSCt2yQ2nHKCHPP/Pv7Xq4Q==}
@@ -6465,6 +6471,8 @@ snapshots:
   '@firebase/webchannel-wrapper@1.0.3': {}
 
   '@fontsource/fredoka@5.3.0': {}
+
+  '@fontsource/kalam@5.3.0': {}
 
   '@fontsource/nunito@5.3.0': {}
 

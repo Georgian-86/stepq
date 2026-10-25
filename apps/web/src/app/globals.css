@@ -133,6 +133,76 @@
   transform-origin: 50% 100%;
 }
 
+/* Piko's handwritten note: the arrow draws itself, then the words write in left to right. */
+@keyframes arrow-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes write-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes note-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-4deg);
+  }
+  65% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes note-wiggle-2 {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-4deg);
+  }
+  65% {
+    transform: rotate(3deg);
+  }
+}
+.piko-arrow path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: arrow-draw 650ms ease-out 400ms both;
+}
+.piko-arrow .piko-arrow-head {
+  animation-delay: 950ms;
+  animation-duration: 250ms;
+}
+.piko-write {
+  animation: write-in 700ms steps(14, end) 1150ms both;
+}
+.piko-write-late {
+  animation-delay: 1850ms;
+  animation-duration: 900ms;
+  animation-timing-function: steps(24, end);
+}
+.piko-note-wiggle,
+.piko-note-wiggle-2 {
+  transform-origin: 0% 60%;
+}
+/* Two identical animations so consecutive taps restart the wiggle without remounting. */
+.piko-note-wiggle {
+  animation: note-wiggle 500ms var(--ease-out-soft) 1;
+}
+.piko-note-wiggle-2 {
+  animation: note-wiggle-2 500ms var(--ease-out-soft) 1;
+}
+
 /* Live count dot: a soft opacity pulse (stops under reduced motion). */
 @keyframes live-pulse {
   50% {
@@ -165,6 +235,7 @@
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
   }
   [data-reveal] {

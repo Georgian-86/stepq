@@ -40,8 +40,19 @@ const IPHONE_UA =
 
 test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
-test.beforeEach(async () => {
+test.beforeEach(async ({ page }) => {
   await resetEmulators();
+  // Two client-requested changes on top of Figma: the desktop nav is 80 px (Figma 136) and the
+  // hero Piko has a handwritten note. Restore the Figma nav height and hide the note (it keeps
+  // its layout box) so everything else in each frame is still compared against Figma.
+  await page.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style');
+      style.textContent = `header > nav { min-height: 136px !important; padding-block: 18px !important; }
+        [data-piko-note] { visibility: hidden !important; }`;
+      document.head.appendChild(style);
+    });
+  });
 });
 
 /** Figma draws modal frames over the plain page colour: hide everything but the dialog. */

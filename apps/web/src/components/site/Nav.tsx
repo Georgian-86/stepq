@@ -6,7 +6,11 @@ import { buttonClass } from '../ui/Button';
 import { GUTTER, NAV_LINKS, WAITLIST_HREF } from './links';
 import { Wordmark } from './Wordmark';
 
-/** Web nav / Before launch (Figma `9:16`). Links collapse into a menu sheet under 768 px. */
+/**
+ * Web nav / Before launch (Figma `9:16`). Links collapse into a menu sheet under 768 px.
+ * 80 px tall on desktop at the client's request (Figma draws it 136 px); visual tests restore
+ * the Figma height so the rest of each frame is still compared.
+ */
 export function Nav() {
   const [open, setOpen] = useState(false);
   const sheetId = useId();
@@ -43,7 +47,7 @@ export function Nav() {
     <header ref={header} className="relative z-40 border-b border-line bg-white">
       <nav
         aria-label="Main"
-        className={`mx-auto flex min-h-[72px] max-w-[1440px] items-center gap-[28px] py-[10px] md:min-h-[136px] md:py-[18px] ${GUTTER}`}
+        className={`mx-auto flex min-h-[72px] max-w-[1440px] items-center gap-[28px] py-[10px] md:min-h-[80px] md:py-[12px] ${GUTTER}`}
       >
         <Link href="/" aria-label="StepQ home" className="flex min-h-[44px] items-center">
           <Wordmark />
