@@ -15,6 +15,7 @@ playwright-report/
 test-results/
 functions/lib/
 !functions/.env.demo-stepq
+!functions/.env.stepq-staging-43f0d
 next-env.d.ts
 *.tsbuildinfo
 functions/.secret.local

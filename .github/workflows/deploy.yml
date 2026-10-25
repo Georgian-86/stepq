@@ -1,0 +1,59 @@
+name: Deploy backend
+
+# Manual: deploys Cloud Functions, Firestore rules/indexes and Storage rules to Firebase.
+# The website itself is deployed by Vercel on every push (see docs/runbook.md).
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Firebase project alias
+        type: choice
+        options: [staging, production]
+        default: staging
+
+concurrency:
+  group: deploy-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Launch-readiness check (production only)
+        if: inputs.target == 'production'
+        run: pnpm check:launch
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ inputs.target == 'production' && secrets.FIREBASE_SA_PROD || secrets.FIREBASE_SA_STAGING }}
+
+      # Secrets the Functions declare must exist before deploy. ACTION_SIGNING_SECRET is created
+      # once (32 random bytes) and never rotated by this job; RESEND_API_KEY comes from the
+      # GitHub secret, or a placeholder while mail runs in outbox mode on staging.
+      - name: Ensure Functions secrets exist
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          P=$(node -e "console.log(require('./.firebaserc').projects['${{ inputs.target }}'])")
+          F="pnpm exec firebase --project $P --non-interactive"
+          if ! $F functions:secrets:access ACTION_SIGNING_SECRET >/dev/null 2>&1; then
+            openssl rand -base64 32 | tr -d '\n' | $F functions:secrets:set ACTION_SIGNING_SECRET --data-file=-
+          fi
+          if [ -n "$RESEND_API_KEY" ]; then
+            printf %s "$RESEND_API_KEY" | $F functions:secrets:set RESEND_API_KEY --data-file=-
+          elif ! $F functions:secrets:access RESEND_API_KEY >/dev/null 2>&1; then
+            printf %s "not-configured" | $F functions:secrets:set RESEND_API_KEY --data-file=-
+          fi
+
+      - name: Deploy Functions, Firestore and Storage
+        run: pnpm exec firebase deploy --only functions,firestore,storage --project ${{ inputs.target }} --non-interactive --force

@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "stepq-prod",
+    "default": "stepq-staging-43f0d",
+    "staging": "stepq-staging-43f0d",
     "dev": "demo-stepq"
   }
 }
