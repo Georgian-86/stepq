@@ -84,3 +84,26 @@ test('the UPI hand-off warns that payments are real and not recorded', async ({ 
     page.getByText("Preview: UPI payments made here are real and won't be recorded."),
   ).toBeVisible();
 });
+
+test('the waitlist pop-up opens after 5 s on any page and joins into W02', async ({ page }) => {
+  // Automated browsers don't get the pop-up unless asked (see WaitlistPopup).
+  await page.addInitScript(() => window.localStorage.setItem('stepq.popup.force', '1'));
+  await page.goto('/join-the-team');
+  const popup = page.getByRole('dialog', { name: 'Join the waitlist' });
+  await page.waitForTimeout(4000);
+  await expect(popup).toHaveCount(0);
+  await expect(popup).toBeVisible({ timeout: 3000 });
+
+  await popup.getByLabel('Full name').fill('Riya Sharma');
+  await popup.getByLabel('Email').fill('riya@example.com');
+  await popup.getByRole('radio', { name: 'Female' }).click();
+  await popup.getByRole('radio', { name: '18–24' }).click();
+  await popup.getByRole('button', { name: 'Join the waitlist' }).click();
+  await expect(w02(page)).toBeVisible();
+  await expect(popup).toHaveCount(0);
+
+  // Once per visit: a reload doesn't bring it back.
+  await page.goto('/fund');
+  await page.waitForTimeout(6000);
+  await expect(popup).toHaveCount(0);
+});

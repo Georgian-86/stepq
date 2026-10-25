@@ -152,13 +152,19 @@ async function fillFounder(page: Page) {
 async function expectShown(...locators: Locator[]) {
   for (const l of locators) {
     await expect(l).toBeVisible();
-    const opacity = await l.evaluate((el) => {
-      let o = 1;
-      for (let n: Element | null = el; n; n = n.parentElement)
-        o *= Number(getComputedStyle(n).opacity);
-      return o;
-    });
-    expect(opacity, `${l} is transparent`).toBeGreaterThan(0.99);
+    // Polled: a dialog that has just opened may still be on its first (fade-in) frame.
+    await expect
+      .poll(
+        () =>
+          l.evaluate((el) => {
+            let o = 1;
+            for (let n: Element | null = el; n; n = n.parentElement)
+              o *= Number(getComputedStyle(n).opacity);
+            return o;
+          }),
+        { message: `${l} is transparent`, timeout: 2000 },
+      )
+      .toBeGreaterThan(0.99);
   }
 }
 
