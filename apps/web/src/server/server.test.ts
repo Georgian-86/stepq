@@ -25,6 +25,8 @@ const { GET: resumeGET } = await import('../app/api/resume/route');
 const { GET: statsGET } = await import('../app/api/public/stats/route');
 const { GET: backersGET } = await import('../app/api/public/backers/route');
 const { POST: chunkPOST } = await import('../app/api/chunk/route');
+const { addAdmin, asUser, isAdmin, listTables, readTable, readResume, removeAdmin, tableCsv } =
+  await import('./admin/data');
 
 let ipSeq = 0;
 /** Each call gets a fresh IP unless one is given, so rate limits only bite where tested. */
@@ -506,8 +508,178 @@ describe.skipIf(!url)('API on Postgres', () => {
         `select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
          where n.nspname = 'stepq' and c.relkind = 'r'`,
       );
-      expect(rows.length).toBe(10);
+      expect(rows.length).toBeGreaterThanOrEqual(10);
       expect(rows.every((r) => r.relrowsecurity)).toBe(true);
+    });
+  });
+
+  describe('admin dashboard (RLS)', () => {
+    const admin = { id: randomUUID(), email: 'admin@stepq.in' };
+    const stranger = { id: randomUUID(), email: 'someone@gmail.com' };
+    beforeEach(async () => {
+      await isAdmin(admin); // creates stepq.admins and the policies
+      await query('delete from stepq.admins');
+      await query('insert into stepq.admins (user_id, email) values ($1, $2)', [
+        admin.id,
+        admin.email,
+      ]);
+    });
+
+    it('only users listed in stepq.admins are admins', async () => {
+      expect(await isAdmin(admin)).toBe(true);
+      expect(await isAdmin(stranger)).toBe(false);
+    });
+
+    it('a signed-in non-admin sees no rows in any table', async () => {
+      await ok('joinWaitlist', join());
+      await ok('sendFounderMessage', founder());
+      const tables = await asUser(stranger, listTables);
+      expect(tables.length).toBeGreaterThan(5);
+      expect(tables.every((t) => t.count === 0)).toBe(true);
+      expect((await asUser(stranger, (c) => readTable(c, 'waitlist'))).total).toBe(0);
+    });
+
+    it('cannot write, even as an admin', async () => {
+      await expect(
+        asUser(admin, (c) =>
+          c.query(`insert into stepq.admins (user_id, email) values ($1, 'x@y.z')`, [stranger.id]),
+        ),
+      ).rejects.toThrow(/permission denied/);
+    });
+
+    it('an admin sees every table, new ones included, with their rows', async () => {
+      await ok('joinWaitlist', join());
+      await ok('sendFounderMessage', founder());
+      await query('create table if not exists stepq.later_table (id int primary key, note text)');
+      await query(`insert into stepq.later_table values (1, 'hi') on conflict do nothing`);
+      try {
+        // A new table is covered once the admin SQL runs again (next server start).
+        await query((await import('./admin/schema')).ADMIN_SQL);
+        const tables = await asUser(admin, listTables);
+        const byName = Object.fromEntries(tables.map((t) => [t.name, t]));
+        expect(tables[0]!.name).toBe('waitlist');
+        expect(byName.waitlist!.count).toBe(1);
+        expect(byName.founder_messages).toMatchObject({ label: 'Reach-outs', count: 1 });
+        expect(byName.later_table).toMatchObject({ label: 'later_table', count: 1 });
+        expect(byName.rate_limits!.internal).toBe(true);
+      } finally {
+        await query('drop table stepq.later_table');
+      }
+    });
+
+    it('reads pages with search, shows files as sizes, exports CSV and résumés', async () => {
+      await ok('joinWaitlist', join());
+      await ok('joinWaitlist', join({ name: 'Kabir Rao', email: 'kabir@gmail.com' }));
+      await ok('submitTeamApplication', team(fixture('resume.pdf')));
+      await asUser(admin, async (c) => {
+        const all = await readTable(c, 'waitlist');
+        expect(all.total).toBe(2);
+        expect(all.rows[0]![all.columns.findIndex((col) => col.name === 'name')]).toBe('Kabir Rao');
+        const found = await readTable(c, 'waitlist', { search: 'kabir@' });
+        expect(found.total).toBe(1);
+        expect((await readTable(c, 'waitlist', { search: '%' })).total).toBe(0);
+
+        const apps = await readTable(c, 'team_applications');
+        const resume = apps.rows[0]![apps.columns.findIndex((col) => col.name === 'resume')];
+        expect(resume).toMatch(/^\d+ (B|KB|MB) file$/);
+        const file = await readResume(c, apps.ids[0]!);
+        expect(file!.resume.equals(fixture('resume.pdf'))).toBe(true);
+
+        const csv = await tableCsv(c, 'waitlist');
+        expect(csv.split('\r\n')[0]).toContain('name,email');
+        expect(csv).toContain('kabir@gmail.com');
+        await expect(readTable(c, 'nope"; drop table x; --')).rejects.toThrow('No such table');
+      });
+      expect(await asUser(stranger, (c) => readResume(c, randomUUID()))).toBeNull();
+    });
+
+    describe('managing admins', () => {
+      // The parts of Supabase's auth schema that stepq.add_admin writes to.
+      beforeAll(async () => {
+        await query(`
+          create schema if not exists extensions;
+          create extension if not exists pgcrypto schema extensions;
+          create schema if not exists auth;
+          create table if not exists auth.users (
+            instance_id uuid, id uuid primary key, aud text, role text, email text,
+            encrypted_password text, email_confirmed_at timestamptz, raw_app_meta_data jsonb,
+            raw_user_meta_data jsonb, created_at timestamptz, updated_at timestamptz,
+            confirmation_token text, recovery_token text, email_change_token_new text,
+            email_change text
+          );
+          create table if not exists auth.identities (
+            id uuid primary key, user_id uuid, provider_id text, provider text,
+            identity_data jsonb, last_sign_in_at timestamptz, created_at timestamptz,
+            updated_at timestamptz
+          );`);
+      });
+      beforeEach(() => query('truncate auth.users, auth.identities'));
+
+      it('an admin creates a confirmed account for a new email, with a hashed password', async () => {
+        expect(await asUser(admin, (c) => addAdmin(c, ' New.Admin@StepQ.in ', 'walk-more-8'))).toBe(
+          'created',
+        );
+        const { rows } = await query<{ id: string; ok: boolean; confirmed: boolean }>(
+          `select id, encrypted_password = extensions.crypt('walk-more-8', encrypted_password) as ok,
+             email_confirmed_at is not null as confirmed
+           from auth.users where email = 'new.admin@stepq.in'`,
+        );
+        expect(rows[0]).toMatchObject({ ok: true, confirmed: true });
+        const ids = await query('select 1 from auth.identities where user_id = $1', [rows[0]!.id]);
+        expect(ids.rows).toHaveLength(1);
+        const added = await query('select added_by from stepq.admins where user_id = $1', [
+          rows[0]!.id,
+        ]);
+        expect(added.rows[0]).toEqual({ added_by: admin.email });
+        expect(await isAdmin({ id: rows[0]!.id, email: 'new.admin@stepq.in' })).toBe(true);
+      });
+
+      it('an existing account is promoted and keeps its password', async () => {
+        await query(
+          `insert into auth.users (id, email, encrypted_password) values ($1, $2, 'old-hash')`,
+          [stranger.id, stranger.email],
+        );
+        expect(await asUser(admin, (c) => addAdmin(c, stranger.email, ''))).toBe('promoted');
+        expect(await isAdmin(stranger)).toBe(true);
+        const { rows } = await query('select encrypted_password from auth.users where id = $1', [
+          stranger.id,
+        ]);
+        expect(rows[0]).toEqual({ encrypted_password: 'old-hash' });
+        expect((await query('select 1 from auth.users')).rows).toHaveLength(1);
+      });
+
+      it('checks the email and password', async () => {
+        await expect(
+          asUser(admin, (c) => addAdmin(c, 'not-an-email', 'walk-more-8')),
+        ).rejects.toThrow('Enter a valid email.');
+        await expect(asUser(admin, (c) => addAdmin(c, 'a@b.in', 'short'))).rejects.toThrow(
+          /at least 8 characters/,
+        );
+      });
+
+      it('non-admins cannot add or remove admins', async () => {
+        await expect(
+          asUser(stranger, (c) => addAdmin(c, stranger.email, 'walk-more-8')),
+        ).rejects.toThrow('Only admins can add admins.');
+        await expect(asUser(stranger, (c) => removeAdmin(c, admin.id))).rejects.toThrow(
+          'Only admins can remove admins.',
+        );
+        expect(await isAdmin(stranger)).toBe(false);
+        expect(await isAdmin(admin)).toBe(true);
+      });
+
+      it('an admin removes another admin, but not themselves', async () => {
+        await query('insert into stepq.admins (user_id, email) values ($1, $2)', [
+          stranger.id,
+          stranger.email,
+        ]);
+        await expect(asUser(admin, (c) => removeAdmin(c, admin.id))).rejects.toThrow(
+          'You cannot remove yourself.',
+        );
+        await asUser(admin, (c) => removeAdmin(c, stranger.id));
+        expect(await isAdmin(stranger)).toBe(false);
+        expect(await isAdmin(admin)).toBe(true);
+      });
     });
   });
 });
