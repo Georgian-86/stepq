@@ -709,11 +709,12 @@ describe.skipIf(!url)('API on Postgres', () => {
 
       it('an admin edits a name, email and password; empty fields stay as they are', async () => {
         const id = await newAdmin('priya@stepq.in');
+        const changed = randomUUID();
         await asUser(admin, (c) =>
           updateAdmin(c, id, {
             name: 'Priya',
             email: ' Priya.S@StepQ.in ',
-            password: 'new-pass-99',
+            password: changed,
           }),
         );
         expect(await asUser(admin, (c) => readAdmin(c, id))).toEqual({
@@ -731,12 +732,12 @@ describe.skipIf(!url)('API on Postgres', () => {
           meta: { full_name: 'Priya' },
           ident: 'priya.s@stepq.in',
         });
-        expect(await passwordIs(id, 'new-pass-99')).toBe(true);
+        expect(await passwordIs(id, changed)).toBe(true);
 
         await asUser(admin, (c) =>
           updateAdmin(c, id, { name: 'Priya S', email: '', password: '' }),
         );
-        expect(await passwordIs(id, 'new-pass-99')).toBe(true);
+        expect(await passwordIs(id, changed)).toBe(true);
         expect((await asUser(admin, (c) => readAdmin(c, id)))!.email).toBe('priya.s@stepq.in');
       });
 
