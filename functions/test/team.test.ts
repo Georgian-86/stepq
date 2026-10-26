@@ -61,7 +61,7 @@ describe.skipIf(!hasEmulator)('submitTeamApplication', () => {
     expect(mails.size).toBe(1);
     const m = mails.docs[0]!.data();
     expect(m.template).toBe('teamApplicationAlert');
-    expect(m.props.roleLabel).toBe('Design intern (UI and brand)');
+    expect(m.props.roleLabel).toBe('Design & Creative Intern');
     expect(m.props.resumeUrl).toBeTruthy();
     expect(m.props.resumeUrl).toContain(encodeURIComponent(`resumes/${app.id}.pdf`));
   });

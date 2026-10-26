@@ -29,6 +29,7 @@ server's own connection can read them. See them in Supabase → Table Editor →
 | `mail` | Every email sent or waiting (`status` queued / sent / failed, `last_error`) |
 | `stats` | The live waitlist count |
 | `rate_limits`, `requests`, `chunks` | Internal (abuse limits, retry safety, large uploads) |
+| `admins` | Who may sign in to `/admin` (see below) |
 
 ## Website environment (Vercel → stepq → Settings → Environment Variables)
 
@@ -42,6 +43,7 @@ server's own connection can read them. See them in Supabase → Table Editor →
 | `MAIL_FROM`, `FOUNDER_INBOX` (optional) | Defaults `StepQ <connect@stepq.in>` and `connect@stepq.in`. |
 | `ACTION_SIGNING_SECRET` (optional, **Sensitive**) | Signs the emailed Approve / Verify / reserve / résumé links. Default: derived from `DATABASE_URL`. Changing it (or the database password) voids links already sent. |
 | `AMBASSADOR_KIT_URL` (optional) | Link in the ambassador approval email. |
+| `SUPABASE_ANON_KEY` | For the admin sign-in: Supabase → Project Settings → API Keys → the **anon** (or **publishable**) key. This key is public by design; never add the `service_role` / secret key. `SUPABASE_URL` is optional (default: `https://<project-ref>.supabase.co` from `DATABASE_URL`). |
 | `NEXT_PUBLIC_PREVIEW_MODE` | **Remove** for the live site. `1` = demo build with no backend (banner, noindex). |
 
 Changes apply to new deployments: redeploy after editing (Deployments → ⋯ → Redeploy).
@@ -61,6 +63,43 @@ its DNS records into GoDaddy → DNS (keep the existing MX/TXT records), verify,
 sending-only API key, and set it as `RESEND_API_KEY` in Vercel (Production, Sensitive). Then
 redeploy. Mail is sent from `connect@stepq.in`; the mailbox itself must still be able to *receive*
 mail (GoDaddy → Email & Office shows a warning until it can).
+
+## Admin dashboard (`/admin`)
+
+`stepq.in/admin` lists every row of every table in the `stepq` schema (tables added later show up
+automatically), with search, paging, CSV download and résumé downloads. Records are read-only; the one thing an
+admin can change is who else is an admin.
+
+**How access is enforced.** Sign-in is Supabase Auth (email + password). The server checks the
+token with Supabase, then runs every dashboard query as Supabase's `authenticated` role with that
+user's id, so Postgres row-level security decides what comes back: each `stepq` table has an
+`admins_read` policy that only lets users listed in `stepq.admins` read rows. A signed-in user who
+is not in that table sees nothing. The `stepq` schema stays out of the public REST API, the
+browser never gets a database key, and the session cookies are `httpOnly`, scoped to `/admin`.
+The policies and the `admins` table are created on the first `/admin` request
+(`apps/web/src/server/admin/schema.ts`); the public site does not run that SQL.
+
+**Set it up once:**
+
+1. Vercel: add `SUPABASE_ANON_KEY` (table above), then redeploy.
+2. Supabase → Authentication → Sign In / Providers: turn **off** "Allow new users to sign up".
+3. Supabase → Authentication → Users → **Add user** → create the admin with email + password
+   (tick "Auto confirm user").
+4. Open `stepq.in/admin` once (it says the account has no admin access; that request creates the
+   `admins` table), then in Supabase → SQL editor:
+
+```sql
+insert into stepq.admins (user_id, email)
+select id, email from auth.users where email = 'connect@stepq.in';
+```
+
+That first admin is the only one added by SQL. After that, admins manage admins in the dashboard:
+**Admins → Add an admin**. A new email gets a confirmed account with the password you type there
+(share it privately; they can sign in right away). An email that already has an account keeps its
+own password. **Remove** takes admin access away (the account stays in Authentication → Users);
+you cannot remove yourself. Both run as database functions (`stepq.add_admin`,
+`stepq.remove_admin`) that check the caller is an admin, so no service key is involved.
+Sign-in attempts are rate limited per IP.
 
 ## Domain
 
@@ -85,7 +124,7 @@ On the live site, with an inbox you control:
 - **Verify a backing**: open the "Verify" link in the backing alert email, check the amount and reference against the UPI app, then press **Confirm**. The backer's name joins the wall if they opted in.
 - **Approve an ambassador**: open the "Approve" link in the application email and press **Confirm**. The applicant gets the approval email.
 - Links are single-use in effect (confirming twice does nothing) and expire after 30 days.
-- **Export** any table as CSV from the Supabase Table Editor.
+- **See or export records**: `stepq.in/admin` (Download CSV on each table), or the Supabase Table Editor.
 
 ## Tests
 
