@@ -1,6 +1,7 @@
 import { render, type Rendered, type TemplateName } from '@stepq/emails';
 import { query, type Client } from './db';
 import { env } from './env';
+import { loggable } from './errors';
 
 export type MailInput = {
   to: string;
@@ -128,7 +129,7 @@ export async function deliverPendingMail(limit = 10): Promise<number> {
       );
       sent++;
     } catch (err) {
-      const lastError = (err instanceof Error ? err.message : String(err)).slice(0, 1000);
+      const lastError = loggable(err).message;
       const status = mail.attempts >= MAX_ATTEMPTS ? 'failed' : 'queued';
       console.error('mail delivery failed', {
         mailId: mail.id,

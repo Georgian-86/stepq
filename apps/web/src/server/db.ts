@@ -7,24 +7,43 @@ export type Client = pg.PoolClient;
 let pool: pg.Pool | undefined;
 let ready: Promise<void> | undefined;
 
-function isLocal(url: string): boolean {
-  try {
-    return ['localhost', '127.0.0.1', '::1'].includes(new URL(url).hostname);
-  } catch {
-    return false;
-  }
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1'];
+
+/**
+ * Splits DATABASE_URL into connection fields by hand rather than with `new URL()`, so a password
+ * pasted raw (with `/`, `@`, `$`, `+`… unencoded) or a value with a stray line break still works,
+ * and no parse error can ever echo the string (and its password) into the logs.
+ */
+export function parseDatabaseUrl(raw: string): pg.ClientConfig {
+  const url = raw.replace(/\s+/g, '');
+  const m =
+    /^postgres(?:ql)?:\/\/([^:@/]+)(?::(.*))?@([^@/:]+)(?::(\d+))?\/([^?/]+)(?:\?.*)?$/.exec(url);
+  if (!m) throw new Error('DATABASE_URL is not a postgresql://user:password@host:port/db string');
+  const [, user, password = '', host, port = '5432', database] = m;
+  const decode = (v: string) => {
+    try {
+      return decodeURIComponent(v);
+    } catch {
+      return v; // a raw password with a lone `%`
+    }
+  };
+  return {
+    user: decode(user!),
+    password: /%[0-9a-f]{2}/i.test(password) ? decode(password) : password,
+    host,
+    port: Number(port),
+    database: decode(database!),
+    // Supabase's pooler serves TLS with its own CA.
+    ssl: LOCAL_HOSTS.includes(host!) ? undefined : { rejectUnauthorized: false },
+  };
 }
 
 function getPool(): pg.Pool {
   if (pool) return pool;
   const url = env.databaseUrl();
   if (!url) throw new Error('DATABASE_URL is not set');
-  // Supabase's pooler serves TLS with its own CA; the connection string carries the password.
-  const u = new URL(url);
-  u.searchParams.delete('sslmode');
   pool = new pg.Pool({
-    connectionString: u.toString(),
-    ssl: isLocal(url) ? undefined : { rejectUnauthorized: false },
+    ...parseDatabaseUrl(url),
     // Serverless: few connections per instance; the Supabase pooler multiplexes the rest.
     max: 3,
     idleTimeoutMillis: 10_000,

@@ -1,7 +1,7 @@
 import type { Api, ApiName } from '@stepq/schemas';
 import { z } from 'zod';
 import { query, transaction } from './db';
-import { ApiError, HTTP_STATUS } from './errors';
+import { ApiError, HTTP_STATUS, loggable } from './errors';
 import { confirmAction, describeAction } from './handlers/actions';
 import { submitAmbassador } from './handlers/ambassador';
 import { recordBacking } from './handlers/backing';
@@ -70,7 +70,7 @@ export function errorResponse(e: unknown): Response {
       HTTP_STATUS[e.code],
     );
   }
-  console.error('api error', e);
+  console.error('api error', loggable(e));
   return json({ error: { code: 'internal', message: 'Internal error' } }, 500);
 }
 

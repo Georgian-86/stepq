@@ -1,5 +1,6 @@
 import { after } from 'next/server';
 import { handleCall } from '@/server/http';
+import { loggable } from '@/server/errors';
 import { deliverPendingMail } from '@/server/mail';
 
 export const runtime = 'nodejs';
@@ -11,6 +12,6 @@ export const maxDuration = 30;
 export async function POST(req: Request, { params }: { params: Promise<{ name: string }> }) {
   const res = await handleCall((await params).name, req);
   // Send any mail this request queued (and retry earlier failures) after the response.
-  after(() => deliverPendingMail().catch((e) => console.error('mail delivery', e)));
+  after(() => deliverPendingMail().catch((e) => console.error('mail delivery', loggable(e))));
   return res;
 }
