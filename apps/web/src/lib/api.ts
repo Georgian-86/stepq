@@ -62,12 +62,42 @@ async function post(path: string, body: string, headers: Record<string, string> 
   return payload.result;
 }
 
+const RELOAD_KEY = 'stepq.reloadedForUpdate';
+
+/** A script file of an older deploy is gone (a tab left open across a release). */
+function isStaleChunk(e: unknown): boolean {
+  return (
+    e instanceof Error &&
+    (e.name === 'ChunkLoadError' || /Loading (CSS )?chunk [\w-]+ failed/i.test(e.message))
+  );
+}
+
+/** Reloads once to pick up the new release; false if that already happened this session. */
+function reloadForNewRelease(): boolean {
+  try {
+    if (window.sessionStorage.getItem(RELOAD_KEY)) return false;
+    window.sessionStorage.setItem(RELOAD_KEY, '1');
+  } catch {
+    return false;
+  }
+  window.location.reload();
+  return true;
+}
+
 /** Calls the site's API route `/api/<name>`; errors come back as people-readable messages. */
 export async function call<K extends ApiName>(name: K, data: Api[K]['in']): Promise<Api[K]['out']> {
   // Preview builds only (PREVIEW_MODE). The env check is written out so webpack sees a
-  // constant and drops the simulator chunk from live builds altogether.
+  // constant and drops the simulator chunk from live builds altogether. The simulator's own
+  // errors are already written for people.
   if (process.env.NEXT_PUBLIC_PREVIEW_MODE === '1') {
-    return (await import('./previewApi')).previewCall(name, data);
+    let preview: typeof import('./previewApi');
+    try {
+      preview = await import('./previewApi');
+    } catch (e) {
+      if (isStaleChunk(e)) reloadForNewRelease();
+      throw new Error(GENERIC_ERROR);
+    }
+    return preview.previewCall(name, data);
   }
   try {
     const body = JSON.stringify(data);
@@ -80,6 +110,7 @@ export async function call<K extends ApiName>(name: K, data: Api[K]['in']): Prom
     }
     return (await post(`/api/${name}`, '', { [CHUNK_HEADER]: `${id}:${total}` })) as Api[K]['out'];
   } catch (e) {
+    if (isStaleChunk(e)) reloadForNewRelease();
     throw toApiError(e);
   }
 }

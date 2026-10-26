@@ -93,8 +93,14 @@ export async function readRows<T = Record<string, unknown>>(
   );
 }
 
-/** Sets the live waitlist count shown on the home page. */
+/** Sets the live waitlist count shown on the home page (it counts rows: adds or removes seeds). */
 export async function setWaitlistCount(n: number): Promise<void> {
+  await q('truncate stepq.waitlist');
+  await q(
+    `insert into stepq.waitlist (name, email, gender, age_group, position)
+     select 'Seed', 'seed' || i || '@example.com', 'female', '25_34', i from generate_series(1, $1) i`,
+    [n],
+  );
   await q('update stepq.stats set waitlist_count = $1', [n]);
 }
 

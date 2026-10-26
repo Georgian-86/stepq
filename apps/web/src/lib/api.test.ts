@@ -85,3 +85,20 @@ describe('toApiError', () => {
     expect(toApiError(new TypeError('Failed to fetch')).message).toBe(GENERIC_ERROR);
   });
 });
+
+describe('a tab left open across a release', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('a missing script chunk reloads the page once and shows the generic message', async () => {
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    window.sessionStorage.clear();
+    const stale = Object.assign(new Error('Loading chunk 522 failed. (error: http://x/522.js)'), {
+      name: 'ChunkLoadError',
+    });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(stale));
+    await expect(call('checkUsername', { username: 'x' })).rejects.toThrow(GENERIC_ERROR);
+    await expect(call('checkUsername', { username: 'x' })).rejects.toThrow(GENERIC_ERROR);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+});
