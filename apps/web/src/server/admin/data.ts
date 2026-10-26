@@ -234,3 +234,41 @@ export async function removeAdmin(c: Client, userId: string): Promise<void> {
     adminError(e);
   }
 }
+
+/** Edits an admin (see `stepq.update_admin`); empty fields stay as they are. */
+export async function updateAdmin(
+  c: Client,
+  userId: string,
+  fields: { name?: string; email?: string; password?: string },
+): Promise<void> {
+  try {
+    await c.query('select stepq.update_admin($1, $2, $3, $4)', [
+      userId,
+      fields.name ?? null,
+      fields.email ?? '',
+      fields.password ?? '',
+    ]);
+  } catch (e) {
+    adminError(e);
+  }
+}
+
+/** Deletes another admin's access and sign-in account (see `stepq.delete_admin`). */
+export async function deleteAdmin(c: Client, userId: string): Promise<void> {
+  try {
+    await c.query('select stepq.delete_admin($1)', [userId]);
+  } catch (e) {
+    adminError(e);
+  }
+}
+
+export type AdminProfile = { userId: string; email: string; name: string | null };
+
+/** One admin's editable fields, if RLS lets the user read them. */
+export async function readAdmin(c: Client, userId: string): Promise<AdminProfile | null> {
+  const { rows } = await c.query<AdminProfile>(
+    'select user_id as "userId", email, name from stepq.admins where user_id = $1',
+    [userId],
+  );
+  return rows[0] ?? null;
+}

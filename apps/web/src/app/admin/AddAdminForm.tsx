@@ -14,7 +14,8 @@ export function AddAdminForm() {
         A new email gets an account with the password you set here (share it with them privately).
         An existing account keeps its own password.
       </p>
-      <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+      <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+        <Field label="Name (optional)" name="name" autoComplete="off" />
         <Field
           label="Email"
           name="email"
@@ -24,7 +25,7 @@ export function AddAdminForm() {
           defaultValue={state.email}
         />
         <Field
-          label="Password (new accounts, 8+ characters)"
+          label="Password (8+ characters)"
           name="password"
           type="password"
           autoComplete="new-password"
