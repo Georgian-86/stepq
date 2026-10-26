@@ -6,7 +6,6 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 vi.mock('@/lib/api', async (orig) => ({ ...(await orig<object>()), call: vi.fn() }));
-vi.mock('@/lib/firebase', () => ({ functions: {}, db: {}, initAppCheck: vi.fn() }));
 
 const { WaitlistProvider } = await import('./WaitlistState');
 const { WaitlistCard } = await import('./WaitlistCard');

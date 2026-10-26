@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
-import { readCollection, readMail, resetEmulators } from './helpers/emulator';
+import { readRows, readMail, resetDb } from './helpers/db';
 
 const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
 
 test.beforeEach(async () => {
-  await resetEmulators();
+  await resetDb();
 });
 
 const form = (page: Page) => page.getByRole('form', { name: 'Apply now' });
@@ -68,9 +68,7 @@ test('opening a role pre-selects it; a non-PDF is refused; a double submit makes
   await expect
     .poll(async () => (await readMail({ template: 'teamApplicationAlert' })).length)
     .toBe(1);
-  const apps = await readCollection<{ role: string; email: string; link?: string }>(
-    'teamApplications',
-  );
+  const apps = await readRows<{ role: string; email: string; link?: string }>('team_applications');
   expect(apps).toHaveLength(1);
   expect(apps[0]).toMatchObject({
     role: 'design',

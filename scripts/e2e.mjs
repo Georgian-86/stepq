@@ -1,35 +1,42 @@
-// Builds the Functions, then runs Playwright (apps/web) inside the full emulator suite.
+// Runs Playwright (apps/web) against a local Postgres.
 // Usage: pnpm e2e [-- <playwright args>], e.g. `pnpm e2e -- home --project=desktop`.
-import { execFileSync } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
+// Uses E2E_DATABASE_URL when set; otherwise starts the local PostgreSQL service if needed and
+// creates the `stepq_e2e` database (password `postgres` for the postgres user).
+import { execFileSync, execSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const run = (cmd, args) => execFileSync(cmd, args, { cwd: root, stdio: 'inherit' });
+const sh = (cmd) => execSync(cmd, { cwd: root, stdio: 'pipe' }).toString().trim();
+const quiet = (cmd) => {
+  try {
+    return sh(cmd);
+  } catch {
+    return null;
+  }
+};
 
-// The Functions emulator reads secrets from functions/.secret.local (git-ignored).
-const secrets = join(root, 'functions', '.secret.local');
-if (!existsSync(secrets)) {
-  writeFileSync(secrets, 'ACTION_SIGNING_SECRET=e2e-signing-secret\nRESEND_API_KEY=re_e2e\n');
+if (!process.env.E2E_DATABASE_URL) {
+  if (quiet('pg_isready -h 127.0.0.1 -p 5432') === null) {
+    quiet('service postgresql start');
+    for (let i = 0; i < 20 && quiet('pg_isready -h 127.0.0.1 -p 5432') === null; i++) {
+      execSync('sleep 0.5');
+    }
+  }
+  const psql = (sql) =>
+    quiet(`psql "postgres://postgres:postgres@127.0.0.1:5432/postgres" -tAc "${sql}"`) ??
+    quiet(`su postgres -c 'psql -tAc "${sql}"'`);
+  if (psql("select 1 from pg_database where datname = 'stepq_e2e'") !== '1') {
+    psql('create database stepq_e2e');
+  }
 }
 
-const quote = (a) => `'${a.replace(/'/g, `'\\''`)}'`;
 const args = process.argv.slice(2).filter((a) => a !== '--');
-const inner = ['pnpm --filter web exec playwright test', ...args.map(quote)].join(' ');
-
 try {
-  run('pnpm', ['--filter', 'functions', 'build']);
-  run('pnpm', [
-    'exec',
-    'firebase',
-    'emulators:exec',
-    '--project',
-    'demo-stepq',
-    '--only',
-    'functions,firestore,storage',
-    inner,
-  ]);
+  execFileSync('pnpm', ['--filter', 'web', 'exec', 'playwright', 'test', ...args], {
+    cwd: root,
+    stdio: 'inherit',
+  });
 } catch (e) {
   process.exit(typeof e.status === 'number' ? e.status : 1);
 }

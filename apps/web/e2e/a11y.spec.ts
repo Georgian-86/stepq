@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { actionTokenFromMail, callFunction, readMail, resetEmulators } from './helpers/emulator';
+import { actionTokenFromMail, callFunction, readMail, resetDb } from './helpers/db';
 
 /**
  * Accessibility gates (spec §8): axe on every route and open modal (no serious or critical
@@ -13,7 +13,7 @@ const IPHONE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
 test.beforeEach(async () => {
-  await resetEmulators();
+  await resetDb();
 });
 
 /** Runs axe (WCAG 2.1 A/AA + best practice) and fails on serious or critical violations. */
@@ -286,7 +286,7 @@ test.describe('reduced motion', () => {
     test(`nothing animates on ${path}`, async ({ page }) => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto(path);
-      // (The Firestore listen channel keeps the network busy, so no 'networkidle'.)
+      // (Live data is polled, so the network never idles: no 'networkidle'.)
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(500);
       const running = await page.evaluate(() =>

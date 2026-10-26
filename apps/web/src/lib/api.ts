@@ -1,16 +1,27 @@
 import type { Api, ApiErrorDetails, ApiName } from '@stepq/schemas';
-import type { FirebaseError } from 'firebase/app';
 import { ApiFieldError, GENERIC_ERROR, RATE_LIMIT_ERROR } from './apiErrors';
 
 export { ApiFieldError, GENERIC_ERROR, RATE_LIMIT_ERROR };
 
-/** Codes whose server message is written for people (see functions/src/handlers). */
+/** Codes whose server message is written for people (see src/server/handlers). */
 const USER_FACING = new Set([
   'already-exists',
   'not-found',
   'failed-precondition',
   'permission-denied',
 ]);
+
+/** An error returned by the site's API (`{ error: { code, message, details } }`). */
+export class ApiCallError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly details?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiCallError';
+  }
+}
 
 function isFieldDetails(d: unknown): d is ApiErrorDetails {
   return (
@@ -21,30 +32,37 @@ function isFieldDetails(d: unknown): d is ApiErrorDetails {
   );
 }
 
-/** Checked by name: importing the FirebaseError class would pull Firebase into the first load. */
-function isFirebaseError(e: unknown): e is FirebaseError {
-  return (
-    e instanceof Error &&
-    e.name === 'FirebaseError' &&
-    typeof (e as FirebaseError).code === 'string'
-  );
-}
-
 export function toApiError(e: unknown): Error {
-  if (!isFirebaseError(e)) return new Error(GENERIC_ERROR);
-  const code = e.code.replace(/^functions\//, '');
-  const details = (e as FirebaseError & { details?: unknown }).details;
-  if (code === 'invalid-argument' && isFieldDetails(details))
-    return new ApiFieldError(details.fields);
-  if (code === 'resource-exhausted') return new Error(RATE_LIMIT_ERROR);
-  if (USER_FACING.has(code) && e.message) return new Error(e.message);
+  if (!(e instanceof ApiCallError)) return new Error(GENERIC_ERROR);
+  if (e.code === 'invalid-argument' && isFieldDetails(e.details))
+    return new ApiFieldError(e.details.fields);
+  if (e.code === 'resource-exhausted') return new Error(RATE_LIMIT_ERROR);
+  if (USER_FACING.has(e.code) && e.message) return new Error(e.message);
   return new Error(GENERIC_ERROR);
 }
 
-/**
- * Calls a callable Function. Firebase is loaded on first use, so it stays out of the first
- * paint of every page with a form (Lighthouse: the SDK is the largest part of the bundle).
- */
+/** Bodies above this go up in parts (the host caps one request at 4.5 MB). */
+export const CHUNK_CHARS = 3_000_000;
+const CHUNK_HEADER = 'x-stepq-chunks';
+
+async function post(path: string, body: string, headers: Record<string, string> = {}) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body,
+  });
+  const payload = (await res.json().catch(() => null)) as {
+    result?: unknown;
+    error?: { code?: string; message?: string; details?: unknown };
+  } | null;
+  if (!res.ok || !payload || payload.error) {
+    const err = payload?.error;
+    throw new ApiCallError(err?.code ?? 'internal', err?.message ?? '', err?.details);
+  }
+  return payload.result;
+}
+
+/** Calls the site's API route `/api/<name>`; errors come back as people-readable messages. */
 export async function call<K extends ApiName>(name: K, data: Api[K]['in']): Promise<Api[K]['out']> {
   // Preview builds only (PREVIEW_MODE). The env check is written out so webpack sees a
   // constant and drops the simulator chunk from live builds altogether.
@@ -52,14 +70,15 @@ export async function call<K extends ApiName>(name: K, data: Api[K]['in']): Prom
     return (await import('./previewApi')).previewCall(name, data);
   }
   try {
-    const [{ httpsCallable }, { functions, initAppCheck }] = await Promise.all([
-      import('firebase/functions'),
-      import('./firebase'),
-    ]);
-    initAppCheck();
-    const fn = httpsCallable<Api[K]['in'], Api[K]['out']>(functions, name);
-    const res = await fn(data);
-    return res.data;
+    const body = JSON.stringify(data);
+    if (body.length <= CHUNK_CHARS) return (await post(`/api/${name}`, body)) as Api[K]['out'];
+    const id = crypto.randomUUID();
+    const total = Math.ceil(body.length / CHUNK_CHARS);
+    for (let index = 0; index < total; index++) {
+      const part = body.slice(index * CHUNK_CHARS, (index + 1) * CHUNK_CHARS);
+      await post('/api/chunk', JSON.stringify({ id, index, total, part }));
+    }
+    return (await post(`/api/${name}`, '', { [CHUNK_HEADER]: `${id}:${total}` })) as Api[K]['out'];
   } catch (e) {
     throw toApiError(e);
   }

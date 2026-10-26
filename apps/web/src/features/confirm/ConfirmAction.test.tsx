@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const call = vi.fn();
 vi.mock('@/lib/api', async (orig) => ({ ...(await orig<object>()), call }));
-vi.mock('@/lib/firebase', () => ({ functions: {}, db: {}, initAppCheck: vi.fn() }));
 
 const { ConfirmAction } = await import('./ConfirmAction');
 

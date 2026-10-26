@@ -1,14 +1,14 @@
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { resetEmulators, writeDoc } from './helpers/emulator';
+import { resetDb, seedBackers, setWaitlistCount } from './helpers/db';
 
 /**
  * Figma visual parity (spec §4). Each W1 frame's state is rendered at 1440 wide with reduced
  * motion and compared with the Figma export itself (`e2e/figma/*.png` is the baseline, see
  * playwright.config.ts). NEVER run this spec with `-u` / `--update-snapshots`: that would
  * overwrite the Figma references with our own render. The Figma sample values (12,480 people,
- * #12,481, the backer names) exist only in the emulator inside these tests. Modal frames are
+ * #12,481, the backer names) exist only in the test database inside these tests. Modal frames are
  * drawn in Figma over a blank page, so the page behind the dialog is hidden here.
  *
  * The 2 % pixel budget alone can miss whole light sections (mint cards on white sit inside the
@@ -41,7 +41,7 @@ const IPHONE_UA =
 test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
 test.beforeEach(async ({ page }) => {
-  await resetEmulators();
+  await resetDb();
   // Two client-requested changes on top of Figma: the desktop nav is 80 px (Figma 136) and the
   // hero Piko has a handwritten note. Restore the Figma nav height and hide the note (it keeps
   // its layout box) so everything else in each frame is still compared against Figma.
@@ -74,8 +74,8 @@ async function settled(page: Page) {
 }
 
 async function seedHome() {
-  await writeDoc('public/stats', { waitlistCount: 12480 });
-  await writeDoc('public/backers', { names: BACKERS });
+  await setWaitlistCount(12480);
+  await seedBackers(BACKERS);
 }
 
 async function fillWaitlist(page: Page) {

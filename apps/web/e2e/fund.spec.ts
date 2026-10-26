@@ -1,14 +1,14 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import jsQR from 'jsqr';
 import { PNG } from 'pngjs';
-import { confirmFromMail, readCollection, readMail, resetEmulators } from './helpers/emulator';
+import { confirmFromMail, readRows, readMail, resetDb } from './helpers/db';
 
 const UPI_BASE = 'upi://pay?pa=bhakti0parmar1@oksbi&pn=bhakti%20parmar&aid=uGICAgIDdi9q2dQ';
 const IPHONE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
 test.beforeEach(async () => {
-  await resetEmulators();
+  await resetDb();
 });
 
 const form = (page: Page) => page.getByRole('form', { name: 'Your details' });
@@ -68,7 +68,7 @@ test.describe('desktop', () => {
     expect(link).toContain('am=251.00');
     expect(link).toContain('tn=StepQ%20');
 
-    const backings = await readCollection<{ amount: number; status: string; showOnWall: boolean }>(
+    const backings = await readRows<{ amount: number; status: string; showOnWall: boolean }>(
       'backings',
     );
     expect(backings).toHaveLength(1);
@@ -106,7 +106,7 @@ test.describe('desktop', () => {
     await f.getByRole('button', { name: 'Pay with UPI' }).click();
     await expect(f.locator('#fund-amount-error')).toHaveText('Enter an amount');
     await expect(payModal(page, '0')).toHaveCount(0);
-    expect(await readCollection('backings')).toHaveLength(0);
+    expect(await readRows('backings')).toHaveLength(0);
   });
 
   test('Cancel closes the pay modal and leaves the form', async ({ page }) => {
@@ -139,7 +139,7 @@ test.describe('desktop', () => {
 
     const wall = home.getByRole('region', { name: 'Our early backers' });
     await expect(wall.getByRole('listitem')).toHaveText(['Riya S.']);
-    expect((await readCollection<{ status: string }>('backings'))[0]?.status).toBe('verified');
+    expect((await readRows<{ status: string }>('backings'))[0]?.status).toBe('verified');
   });
 
   test('W08 without a valid amount leaves the amount out', async ({ page }) => {
@@ -174,7 +174,7 @@ test.describe('Android', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0);
     // If Chrome blocked the automatic hand-off, the same link is one tap away.
     await expect(page.getByRole('link', { name: 'Open UPI app' })).toHaveAttribute('href', link);
-    expect(await readCollection('backings')).toHaveLength(1);
+    expect(await readRows('backings')).toHaveLength(1);
 
     await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
     await page.getByRole('button', { name: "I've paid" }).click();

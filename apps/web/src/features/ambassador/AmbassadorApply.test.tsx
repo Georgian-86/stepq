@@ -9,7 +9,6 @@ vi.mock('next/navigation', () => ({
 }));
 const call = vi.fn();
 vi.mock('@/lib/api', async (orig) => ({ ...(await orig<object>()), call }));
-vi.mock('@/lib/firebase', () => ({ functions: {}, db: {}, initAppCheck: vi.fn() }));
 
 const { AmbassadorApply } = await import('./AmbassadorApply');
 

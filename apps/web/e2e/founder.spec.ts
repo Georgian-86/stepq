@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { readCollection, readMail, resetEmulators } from './helpers/emulator';
+import { readRows, readMail, resetDb } from './helpers/db';
 
 test.beforeEach(async () => {
-  await resetEmulators();
+  await resetDb();
 });
 
 // A closing modal stays in the DOM for its exit animation, so dialogs are found by name.
@@ -35,7 +35,7 @@ test('home strip → pick Investment → W17; the founder gets a reply-to mail',
   const [mail] = await readMail({ template: 'founderMessage' });
   expect(mail!.replyTo).toBe('riya@example.com');
   expect(mail!.props).toMatchObject({ topicLabel: 'Investment', phone: '+442079460958' });
-  expect(await readCollection('founderMessages')).toHaveLength(1);
+  expect(await readRows('founder_messages')).toHaveLength(1);
 
   await sent(page).getByRole('button', { name: 'Back to StepQ' }).click();
   await expect(sent(page)).toHaveCount(0);
@@ -81,5 +81,5 @@ test('an empty send lists the missing fields and sends nothing', async ({ page }
   await expect(summary).toBeFocused();
   // name, email, topic, message (phone is optional)
   await expect(summary.getByRole('link')).toHaveCount(4);
-  expect(await readCollection('founderMessages')).toHaveLength(0);
+  expect(await readRows('founder_messages')).toHaveLength(0);
 });

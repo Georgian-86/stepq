@@ -7,7 +7,6 @@ vi.mock('next/navigation', () => ({
 }));
 const call = vi.fn();
 vi.mock('@/lib/api', async (orig) => ({ ...(await orig<object>()), call }));
-vi.mock('@/lib/firebase', () => ({ functions: {}, db: {}, initAppCheck: vi.fn() }));
 
 const { FounderModal } = await import('./FounderModal');
 const { openModalParam } = await import('@/lib/useModalParam');

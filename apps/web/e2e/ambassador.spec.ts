@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { actionTokenFromMail, readCollection, readMail, resetEmulators } from './helpers/emulator';
+import { actionTokenFromMail, readRows, readMail, resetDb } from './helpers/db';
 
 test.beforeEach(async () => {
-  await resetEmulators();
+  await resetDb();
 });
 
 const form = (page: Page) => page.getByRole('form', { name: 'Apply' });
@@ -42,7 +42,7 @@ test('T&C is required and keeps typed values; approve via the signed /confirm pa
     'Please agree to the Terms & Conditions',
   );
   await expect(apply.getByRole('alert').first()).toBeFocused();
-  expect(await readCollection('ambassadorApplications')).toHaveLength(0);
+  expect(await readRows('ambassador_applications')).toHaveLength(0);
 
   // Open the T&C (W10) and close it: everything typed is still there.
   await apply.getByRole('link', { name: 'Terms & Conditions', exact: true }).click();
@@ -92,8 +92,8 @@ test('T&C is required and keeps typed values; approve via the signed /confirm pa
   await expect(page.getByRole('link', { name: 'Back to home' })).toHaveAttribute('href', '/');
 
   await expect.poll(async () => (await readMail({ template: 'ambassadorAlert' })).length).toBe(1);
-  const apps = await readCollection<{ email: string; instagram: string; followers: string }>(
-    'ambassadorApplications',
+  const apps = await readRows<{ email: string; instagram: string; followers: string }>(
+    'ambassador_applications',
   );
   expect(apps).toHaveLength(1);
   expect(apps[0]).toMatchObject({
@@ -128,8 +128,9 @@ test('T&C is required and keeps typed values; approve via the signed /confirm pa
 
 test('W11 without a name leaves it out, and a long name is capped', async ({ page }) => {
   await page.goto('/ambassadors/received');
+  // The message depends on the query, read after hydration: wait for it before reading.
+  await expect(page.getByRole('main')).toContainText('Thanks. StepQ will review your application.');
   const text = await page.getByRole('main').innerText();
-  expect(text).toContain('Thanks. StepQ will review your application.');
   expect(text).not.toContain('Thanks, .');
   await page.goto(`/ambassadors/received?name=${'A'.repeat(200)}`);
   await expect(page.getByRole('main')).toContainText(`Thanks, ${'A'.repeat(60)}. StepQ`);

@@ -7,8 +7,6 @@ import { Field } from '@/components/ui/Field';
 import { ApiFieldError } from './api';
 import { useZodForm } from './useZodForm';
 
-vi.mock('./firebase', () => ({ functions: {}, initAppCheck: vi.fn() }));
-
 const schema = z.object({
   name: z.string({ required_error: 'Enter your name' }).trim().min(2, 'Enter your name'),
   email: z

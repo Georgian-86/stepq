@@ -1,20 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
+import { BASE_URL, DATABASE_URL } from './e2e/helpers/db';
 
 /**
- * End-to-end tests against the Firebase emulators. Run from the repo root with `pnpm e2e`,
- * which builds the Functions and wraps this in `firebase emulators:exec` (functions,
- * firestore, storage). The app is a production build pointed at the emulators.
+ * End-to-end tests against a local Postgres. Run from the repo root with `pnpm e2e`, which
+ * makes sure the database exists (scripts/e2e.mjs). The app is a production build whose API
+ * routes use that database; mail is rendered and marked sent without being sent.
  * @playwright/test is pinned to 1.56.1 (Chromium build 1194): locally that build is preinstalled
  * under PLAYWRIGHT_BROWSERS_PATH; CI runs `playwright install --with-deps chromium`.
  */
-const PORT = 3100;
-const BASE_URL = `http://127.0.0.1:${PORT}`;
+
+const PORT = new URL(BASE_URL).port;
 
 export default defineConfig({
   testDir: './e2e',
   // The preview smoke test needs a preview build: `pnpm e2e:preview` (playwright.preview.config.ts).
   testIgnore: 'preview.spec.ts',
-  // Every test resets the shared emulator, so tests run one at a time.
+  // Every test resets the shared database, so tests run one at a time.
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
@@ -49,8 +50,12 @@ export default defineConfig({
     // Always a fresh build: a leftover server would test stale code.
     reuseExistingServer: false,
     env: {
-      NEXT_PUBLIC_USE_EMULATORS: '1',
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'demo-stepq',
+      DATABASE_URL,
+      ACTION_SIGNING_SECRET: 'e2e-signing-secret',
+      SITE_URL: BASE_URL,
+      MAIL_TRANSPORT: 'log',
+      NEXT_PUBLIC_PREVIEW_MODE: '',
+      NEXT_PUBLIC_PUBLIC_POLL_MS: '1000',
     },
   },
 });

@@ -6,7 +6,6 @@ const push = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 const call = vi.fn();
 vi.mock('@/lib/api', async (orig) => ({ ...(await orig<object>()), call }));
-vi.mock('@/lib/firebase', () => ({ functions: {}, db: {}, initAppCheck: vi.fn() }));
 const detectPlatform = vi.fn(() => 'desktop');
 vi.mock('@/lib/platform', () => ({ detectPlatform: () => detectPlatform() }));
 const openUpiLink = vi.fn();

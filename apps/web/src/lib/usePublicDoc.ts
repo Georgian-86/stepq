@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { PREVIEW_MODE } from './preview';
 
-let warned = false;
+/** How often the home page refreshes the live count and the backers wall. */
+export const PUBLIC_POLL_MS = Number(process.env.NEXT_PUBLIC_PUBLIC_POLL_MS) || 20_000;
 
 /**
- * Live data of a public Firestore doc (`public/stats`, `public/backers`): `undefined` until the
- * first snapshot (or if the listener fails), `null` when the doc does not exist. Firebase is
- * loaded lazily so it stays out of the first paint. Preview builds have no Firestore: every
+ * Live public data (`stats`: the waitlist count; `backers`: the wall), polled from
+ * `/api/public/<id>` while the tab is visible: `undefined` until the first successful read
+ * (and while it keeps failing), never a guessed value. Preview builds have no backend: every
  * doc reads as missing (live count 0, no backers wall).
  */
 export function usePublicDoc<T extends object>(id: 'stats' | 'backers'): T | null | undefined {
@@ -16,25 +17,25 @@ export function usePublicDoc<T extends object>(id: 'stats' | 'backers'): T | nul
 
   useEffect(() => {
     if (PREVIEW_MODE) return;
-    let unsubscribe: (() => void) | undefined;
     let cancelled = false;
-    Promise.all([import('firebase/firestore'), import('./firebase')])
-      .then(([{ doc, onSnapshot }, { db }]) => {
-        if (cancelled) return;
-        unsubscribe = onSnapshot(
-          doc(db, 'public', id),
-          (snap) => setData(snap.exists() ? (snap.data() as T) : null),
-          () => {}, // offline / blocked: keep showing nothing rather than a wrong number
-        );
-      })
-      .catch((err: unknown) => {
-        // Chunk failed to load (offline, deploy in between): show nothing, log once.
-        if (!warned) console.warn('Live data unavailable', err);
-        warned = true;
-      });
+    const load = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const res = await fetch(`/api/public/${id}`, { cache: 'no-store' });
+        if (!res.ok) return; // offline / backend down: keep the last value rather than a wrong one
+        const body = (await res.json()) as T;
+        if (!cancelled) setData(body);
+      } catch {
+        // network error: keep the last value
+      }
+    };
+    void load();
+    const timer = window.setInterval(load, PUBLIC_POLL_MS);
+    document.addEventListener('visibilitychange', load);
     return () => {
       cancelled = true;
-      unsubscribe?.();
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', load);
     };
   }, [id]);
 

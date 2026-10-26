@@ -1,15 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import {
-  actionTokenFromMail,
-  callFunction,
-  readDoc,
-  readMail,
-  resetEmulators,
-} from './helpers/emulator';
+import { actionTokenFromMail, callFunction, readWall, readMail, resetDb } from './helpers/db';
 
 test.beforeEach(async () => {
-  await resetEmulators();
+  await resetDb();
 });
 
 test('a bad or missing token shows a friendly error and no Confirm button', async ({ page }) => {
@@ -38,9 +32,9 @@ test('verifying a backing happens only on Confirm', async ({ page }) => {
 
   await page.goto(`/confirm?token=${encodeURIComponent(token)}`);
   await expect(page.getByText(`Verify ₹251 from Riya S. (ref ${reference})?`)).toBeVisible();
-  expect((await readDoc<{ names?: string[] }>('public/backers'))?.names ?? []).toEqual([]);
+  expect(await readWall()).toEqual([]);
 
   await page.getByRole('button', { name: 'Confirm' }).dblclick();
   await expect(page.getByRole('heading', { name: 'Done' })).toBeVisible();
-  expect((await readDoc<{ names: string[] }>('public/backers'))?.names).toEqual(['Riya S.']);
+  expect(await readWall()).toEqual(['Riya S.']);
 });

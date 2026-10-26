@@ -1,14 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import {
-  actionTokenFromMail,
-  readDoc,
-  readMail,
-  resetEmulators,
-  writeDoc,
-} from './helpers/emulator';
+import { actionTokenFromMail, readRows, readMail, resetDb, setWaitlistCount } from './helpers/db';
 
 test.beforeEach(async () => {
-  await resetEmulators();
+  await resetDb();
 });
 
 const card = (page: Page) => page.locator('#waitlist');
@@ -175,8 +169,8 @@ test('/join keeps ref and UTM params and stores them as the source', async ({ pa
   await join(page, 'Riya Sharma', 'riya@example.com');
   await expect(w02(page)).toContainText("You're #1.");
 
-  const link = await readDoc<{ id: string }>('waitlistEmails/riya@example.com');
-  const entry = await readDoc<{ source?: string }>(`waitlist/${link!.id}`);
+  const [entry] = await readRows<{ email: string; source?: string }>('waitlist');
+  expect(entry?.email).toBe('riya@example.com');
   expect(entry?.source).toContain('ref=abc');
   expect(entry?.source).toContain('utm_source=ig');
   expect(entry?.source).not.toContain('x=1');
@@ -186,11 +180,11 @@ test('the live count pill does not change size when a large count arrives (390 p
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await writeDoc('public/stats', { waitlistCount: 1234567 });
-  // Hold Firestore's listen channel so the pre-snapshot state can be measured.
+  await setWaitlistCount(1234567);
+  // Hold the first live-count read so the pre-data state can be measured.
   let release!: () => void;
   const gate = new Promise<void>((r) => (release = r));
-  await page.route('**/google.firestore.v1.Firestore/Listen/**', async (route) => {
+  await page.route('**/api/public/stats', async (route) => {
     await gate;
     await route.continue();
   });
@@ -209,7 +203,7 @@ test('the live count pill does not change size when a large count arrives (390 p
   expect(after!.height).toBeCloseTo(before!.height, 0);
 
   // A later change ("1" → many, roll included) keeps the size too.
-  await writeDoc('public/stats', { waitlistCount: 1 });
+  await setWaitlistCount(1);
   await expect(liveCount(page)).toHaveText('1 person has joined the waitlist');
   const one = await pill.boundingBox();
   expect(one!.width).toBeCloseTo(before!.width, 0);
