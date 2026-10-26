@@ -15,8 +15,8 @@ export type MailTransport = (mail: OutgoingMail) => Promise<void>;
 
 export const MAX_ATTEMPTS = 6;
 const MAX_AGE = '24 hours';
-/** A failed send waits this long before the next try. */
-const RETRY_AFTER = '1 minute';
+/** A failed send waits 5, 15, 45, 135, 405 minutes before the next try (about 10 h in all). */
+const RETRY_BASE_MIN = 5;
 /** A send that has not finished in this long is assumed lost and tried again. */
 const STALE_SENDING = '5 minutes';
 
@@ -94,8 +94,8 @@ type MailRow = {
 
 /**
  * Sends queued mail, one row at a time (claimed with SKIP LOCKED so concurrent runs never send
- * twice). Runs after each request's response, so a failed send is retried by the next request,
- * up to MAX_ATTEMPTS within 24 h, then marked failed. With no transport configured, mail stays
+ * twice). Runs after each request's response, so a failed send is retried by a later request,
+ * with growing gaps, up to MAX_ATTEMPTS within 24 h, then marked failed. With no transport configured, mail stays
  * queued and goes out once one is.
  */
 export async function deliverPendingMail(limit = 10): Promise<number> {
@@ -107,7 +107,8 @@ export async function deliverPendingMail(limit = 10): Promise<number> {
       `update stepq.mail set status = 'sending', attempts = attempts + 1, updated_at = now()
        where id = (
          select id from stepq.mail
-         where ((status = 'queued' and (attempts = 0 or updated_at < now() - interval '${RETRY_AFTER}'))
+         where ((status = 'queued' and (attempts = 0
+                 or updated_at < now() - make_interval(mins => ${RETRY_BASE_MIN} * power(3, attempts - 1)::int)))
              or (status = 'sending' and updated_at < now() - interval '${STALE_SENDING}'))
            and created_at > now() - interval '${MAX_AGE}'
          order by id limit 1 for update skip locked)

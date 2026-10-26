@@ -463,13 +463,18 @@ describe.skipIf(!url)('API on Postgres', () => {
       await ok('sendFounderMessage', founder());
       await deliverPendingMail();
       expect((await mails())[0]).toMatchObject({ status: 'queued', attempts: 1 });
-      // Not retried immediately.
+      // Not retried immediately, nor 4 minutes later; 6 minutes later it is.
       await deliverPendingMail();
       expect((await mails())[0]!.attempts).toBe(1);
-      await query(
-        `update stepq.mail set attempts = $1, updated_at = now() - interval '2 minutes'`,
-        [MAX_ATTEMPTS - 1],
-      );
+      await query(`update stepq.mail set updated_at = now() - interval '4 minutes'`);
+      await deliverPendingMail();
+      expect((await mails())[0]!.attempts).toBe(1);
+      await query(`update stepq.mail set updated_at = now() - interval '6 minutes'`);
+      await deliverPendingMail();
+      expect((await mails())[0]!.attempts).toBe(2);
+      await query(`update stepq.mail set attempts = $1, updated_at = now() - interval '1 day'`, [
+        MAX_ATTEMPTS - 1,
+      ]);
       await deliverPendingMail();
       expect((await mails())[0]).toMatchObject({ status: 'failed', attempts: MAX_ATTEMPTS });
     });

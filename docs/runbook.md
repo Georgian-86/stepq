@@ -47,7 +47,20 @@ server's own connection can read them. See them in Supabase → Table Editor →
 Changes apply to new deployments: redeploy after editing (Deployments → ⋯ → Redeploy).
 
 Without SMTP or Resend set, emails wait in the `mail` table (`queued`) and go out after the next
-form submission once a transport is configured.
+form submission once a transport is configured. A failed send is retried by later submissions
+after 5, 15, 45, 135 and 405 minutes, then marked `failed`. To send failed mail again (e.g. after
+fixing the email settings), run in Supabase → SQL editor:
+
+```sql
+update stepq.mail set status = 'queued', attempts = 0, created_at = now() where status = 'failed';
+```
+
+**Recommended email setup: Resend.** The GoDaddy Microsoft 365 mailbox blocks the simple
+password login the site would use (error `535 5.7.3`). In Resend add the domain `stepq.in`, copy
+its DNS records into GoDaddy → DNS (keep the existing MX/TXT records), verify, create a
+sending-only API key, and set it as `RESEND_API_KEY` in Vercel (Production, Sensitive). Then
+redeploy. Mail is sent from `connect@stepq.in`; the mailbox itself must still be able to *receive*
+mail (GoDaddy → Email & Office shows a warning until it can).
 
 ## Domain
 
