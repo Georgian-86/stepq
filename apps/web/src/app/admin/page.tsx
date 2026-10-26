@@ -1,14 +1,30 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { PAGE_SIZE, asUser, listTables, readTable, type Cell } from '@/server/admin/data';
+import {
+  PAGE_SIZE,
+  asUser,
+  listTables,
+  readAdmin,
+  readTable,
+  type Cell,
+} from '@/server/admin/data';
 import { adminState } from '@/server/admin/session';
-import { logout, removeAdminAction } from './actions';
+import { logout } from './actions';
 import { AddAdminForm } from './AddAdminForm';
+import { EditAdminForm } from './EditAdminForm';
 
 export const dynamic = 'force-dynamic';
 
-type Search = { t?: string; p?: string; q?: string };
+type Search = {
+  t?: string;
+  p?: string;
+  q?: string;
+  edit?: string;
+  saved?: string;
+  deleted?: string;
+};
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function href(params: Search): string {
   const s = new URLSearchParams();
@@ -36,14 +52,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  const { t, p, q = '' } = await searchParams;
+  const { t, p, q = '', edit, saved, deleted } = await searchParams;
   const search = q.trim().slice(0, 200);
   const page = Math.max(1, Math.floor(Number(p)) || 1);
-  const { tables, current, data } = await asUser(state.user, async (c) => {
+  const { tables, current, data, editing } = await asUser(state.user, async (c) => {
     const tables = await listTables(c);
     const current = tables.find((x) => x.name === t) ?? tables[0];
     const data = current ? await readTable(c, current.name, { page, search }) : null;
-    return { tables, current, data };
+    const editing =
+      current?.name === 'admins' && edit && UUID.test(edit) ? await readAdmin(c, edit) : null;
+    return { tables, current, data, editing };
   });
   const pages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
   const resumeCol = data?.columns.findIndex((col) => col.name === 'resume') ?? -1;
@@ -54,7 +72,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <header className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 edge-b md:px-6">
         <h1 className="type-app-subheading">StepQ admin</h1>
         <div className="flex items-center gap-3">
-          <span className="type-web-small text-muted">{state.user.email}</span>
+          <Link
+            href={href({ t: 'admins', edit: state.user.id })}
+            className="type-web-small text-muted underline-offset-2 hover:underline"
+          >
+            {state.user.email}
+          </Link>
           <form action={logout}>
             <Button type="submit" variant="text">
               Sign out
@@ -123,7 +146,21 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 </div>
               </div>
 
-              {managingAdmins && <AddAdminForm />}
+              {managingAdmins && (saved || deleted) && !editing && (
+                <p role="status" className="type-web-small mb-3 text-deep">
+                  {deleted ? 'Admin deleted.' : 'Changes saved.'}
+                </p>
+              )}
+              {managingAdmins &&
+                (editing ? (
+                  <EditAdminForm
+                    key={editing.userId}
+                    admin={editing}
+                    isSelf={editing.userId === state.user.id}
+                  />
+                ) : (
+                  <AddAdminForm />
+                ))}
 
               <div className="overflow-x-auto rounded-card bg-white shadow-card">
                 <table className="type-web-small w-full border-collapse text-left">
@@ -173,15 +210,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         ))}
                         {managingAdmins && (
                           <td className="px-3 py-1 text-right">
-                            {data.ids[r] && data.ids[r] !== state.user.id ? (
-                              <form action={removeAdminAction}>
-                                <input type="hidden" name="userId" value={data.ids[r]} />
-                                <Button type="submit" variant="text" className="text-tomato-text">
-                                  Remove
-                                </Button>
-                              </form>
-                            ) : (
-                              <span className="type-web-small text-muted">You</span>
+                            {data.ids[r] && (
+                              <Link
+                                href={href({ t: 'admins', edit: data.ids[r]! })}
+                                className="type-web-small-strong whitespace-nowrap text-deep"
+                              >
+                                {data.ids[r] === state.user.id ? 'Edit (you)' : 'Edit'}
+                              </Link>
                             )}
                           </td>
                         )}

@@ -93,12 +93,19 @@ insert into stepq.admins (user_id, email)
 select id, email from auth.users where email = 'connect@stepq.in';
 ```
 
-That first admin is the only one added by SQL. After that, admins manage admins in the dashboard:
-**Admins → Add an admin**. A new email gets a confirmed account with the password you type there
-(share it privately; they can sign in right away). An email that already has an account keeps its
-own password. **Remove** takes admin access away (the account stays in Authentication → Users);
-you cannot remove yourself. Both run as database functions (`stepq.add_admin`,
-`stepq.remove_admin`) that check the caller is an admin, so no service key is involved.
+That first admin is the only one added by SQL. After that, admins manage admins in the dashboard
+(**Admins**, or your email at the top right for your own profile):
+
+- **Add an admin**: a new email gets a confirmed account with the password you type there (share
+  it privately; they can sign in right away). An email that already has an account keeps its own
+  password.
+- **Edit**: change an admin's name, sign-in email or password (leave the password empty to keep
+  it). This changes their Supabase Auth account directly.
+- **Delete** (tick the confirmation): removes their admin access and deletes their sign-in account.
+  You cannot delete yourself, so there is always at least one admin.
+
+These run as database functions (`stepq.add_admin`, `stepq.update_admin`, `stepq.delete_admin`)
+that check the caller is an admin, so no service key is involved.
 Sign-in attempts are rate limited per IP.
 
 ## Domain

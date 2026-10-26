@@ -25,8 +25,19 @@ const { GET: resumeGET } = await import('../app/api/resume/route');
 const { GET: statsGET } = await import('../app/api/public/stats/route');
 const { GET: backersGET } = await import('../app/api/public/backers/route');
 const { POST: chunkPOST } = await import('../app/api/chunk/route');
-const { addAdmin, asUser, isAdmin, listTables, readTable, readResume, removeAdmin, tableCsv } =
-  await import('./admin/data');
+const {
+  addAdmin,
+  asUser,
+  deleteAdmin,
+  isAdmin,
+  listTables,
+  readAdmin,
+  readTable,
+  readResume,
+  removeAdmin,
+  tableCsv,
+  updateAdmin,
+} = await import('./admin/data');
 
 let ipSeq = 0;
 /** Each call gets a fresh IP unless one is given, so rate limits only bite where tested. */
@@ -678,6 +689,90 @@ describe.skipIf(!url)('API on Postgres', () => {
         );
         await asUser(admin, (c) => removeAdmin(c, stranger.id));
         expect(await isAdmin(stranger)).toBe(false);
+        expect(await isAdmin(admin)).toBe(true);
+      });
+
+      const newAdmin = async (email: string) => {
+        await asUser(admin, (c) => addAdmin(c, email, 'walk-more-8'));
+        const { rows } = await query<{ id: string }>('select id from auth.users where email = $1', [
+          email,
+        ]);
+        return rows[0]!.id;
+      };
+      const passwordIs = async (id: string, pw: string) =>
+        (
+          await query<{ ok: boolean }>(
+            'select encrypted_password = extensions.crypt($2, encrypted_password) as ok from auth.users where id = $1',
+            [id, pw],
+          )
+        ).rows[0]!.ok;
+
+      it('an admin edits a name, email and password; empty fields stay as they are', async () => {
+        const id = await newAdmin('priya@stepq.in');
+        const changed = randomUUID();
+        await asUser(admin, (c) =>
+          updateAdmin(c, id, {
+            name: 'Priya',
+            email: ' Priya.S@StepQ.in ',
+            password: changed,
+          }),
+        );
+        expect(await asUser(admin, (c) => readAdmin(c, id))).toEqual({
+          userId: id,
+          email: 'priya.s@stepq.in',
+          name: 'Priya',
+        });
+        const { rows } = await query<{ email: string; meta: { full_name: string }; ident: string }>(
+          `select u.email, u.raw_user_meta_data as meta, i.identity_data ->> 'email' as ident
+           from auth.users u join auth.identities i on i.user_id = u.id where u.id = $1`,
+          [id],
+        );
+        expect(rows[0]).toEqual({
+          email: 'priya.s@stepq.in',
+          meta: { full_name: 'Priya' },
+          ident: 'priya.s@stepq.in',
+        });
+        expect(await passwordIs(id, changed)).toBe(true);
+
+        await asUser(admin, (c) =>
+          updateAdmin(c, id, { name: 'Priya S', email: '', password: '' }),
+        );
+        expect(await passwordIs(id, changed)).toBe(true);
+        expect((await asUser(admin, (c) => readAdmin(c, id)))!.email).toBe('priya.s@stepq.in');
+      });
+
+      it('rejects a short password, a bad or taken email, and non-admins', async () => {
+        const id = await newAdmin('priya@stepq.in');
+        await newAdmin('kabir@stepq.in');
+        await expect(
+          asUser(admin, (c) => updateAdmin(c, id, { password: 'short' })),
+        ).rejects.toThrow('at least 8 characters');
+        await expect(asUser(admin, (c) => updateAdmin(c, id, { email: 'nope' }))).rejects.toThrow(
+          'Enter a valid email.',
+        );
+        await expect(
+          asUser(admin, (c) => updateAdmin(c, id, { email: 'KABIR@stepq.in' })),
+        ).rejects.toThrow('Another account already uses that email.');
+        await expect(
+          asUser(stranger, (c) => updateAdmin(c, id, { password: 'hijacked-1' })),
+        ).rejects.toThrow('Only admins can edit admins.');
+        expect(await passwordIs(id, 'walk-more-8')).toBe(true);
+      });
+
+      it('an admin deletes another admin and their account, but not themselves', async () => {
+        const id = await newAdmin('priya@stepq.in');
+        await expect(asUser(admin, (c) => deleteAdmin(c, admin.id))).rejects.toThrow(
+          'You cannot delete yourself.',
+        );
+        await expect(asUser(stranger, (c) => deleteAdmin(c, id))).rejects.toThrow(
+          'Only admins can delete admins.',
+        );
+        await asUser(admin, (c) => deleteAdmin(c, id));
+        expect(await isAdmin({ id, email: 'priya@stepq.in' })).toBe(false);
+        expect((await query('select 1 from auth.users where id = $1', [id])).rows).toHaveLength(0);
+        expect(
+          (await query('select 1 from auth.identities where user_id = $1', [id])).rows,
+        ).toHaveLength(0);
         expect(await isAdmin(admin)).toBe(true);
       });
     });

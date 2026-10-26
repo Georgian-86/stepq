@@ -6,8 +6,8 @@
  * as Supabase's `authenticated` role, with the signed-in user's id in `request.jwt.claims`
  * (what `auth.uid()` reads). Every table in `stepq`, including tables added later, gets a
  * read-only policy that lets that role see rows only when `stepq.is_admin()`, i.e. the user is
- * listed in `stepq.admins`. `authenticated` has no write grants: the only writes are
- * `stepq.add_admin` / `stepq.remove_admin`, which check `stepq.is_admin()` themselves.
+ * listed in `stepq.admins`. `authenticated` has no write grants: the only writes are the
+ * `stepq.*_admin` functions below, which check `stepq.is_admin()` themselves.
  *
  * The `stepq` schema stays out of Supabase's public REST API, so even a signed-in admin's
  * token cannot reach it from a browser; only this server can.
@@ -33,6 +33,7 @@ create table if not exists stepq.admins (
   created_at timestamptz not null default now()
 );
 alter table stepq.admins add column if not exists added_by text;
+alter table stepq.admins add column if not exists name text;
 
 create or replace function stepq.is_admin() returns boolean
 language sql stable security definer set search_path = ''
@@ -114,6 +115,80 @@ begin
 end
 $fn$;
 
+-- An admin edits an admin (themselves included): name, sign-in email and password. Empty
+-- values leave a field as it is. Email and password change the Supabase Auth account itself.
+create or replace function stepq.update_admin(
+  target uuid, new_name text, new_email text, new_password text
+)
+returns void
+language plpgsql volatile security definer set search_path = ''
+as $fn$
+declare
+  addr text := lower(trim(coalesce(new_email, '')));
+begin
+  if not stepq.is_admin() then
+    raise exception 'Only admins can edit admins.' using errcode = '42501';
+  end if;
+  if not exists (select 1 from stepq.admins where user_id = target) then
+    raise exception 'That admin no longer exists.' using errcode = '22023';
+  end if;
+  if new_name is not null then
+    update stepq.admins set name = nullif(trim(new_name), '') where user_id = target;
+    update auth.users
+      set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
+        || jsonb_build_object('full_name', nullif(trim(new_name), '')),
+        updated_at = now()
+      where id = target;
+  end if;
+  if addr <> '' and addr <> (select lower(email) from auth.users where id = target) then
+    if addr !~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$' then
+      raise exception 'Enter a valid email.' using errcode = '22023';
+    end if;
+    if exists (select 1 from auth.users where lower(email) = addr and id <> target) then
+      raise exception 'Another account already uses that email.' using errcode = '22023';
+    end if;
+    update auth.users set email = addr, email_confirmed_at = now(), updated_at = now()
+      where id = target;
+    update auth.identities
+      set identity_data = identity_data || jsonb_build_object('email', addr), updated_at = now()
+      where user_id = target and provider = 'email';
+    update stepq.admins set email = addr where user_id = target;
+  end if;
+  if coalesce(new_password, '') <> '' then
+    if length(new_password) < 8 then
+      raise exception 'The password needs at least 8 characters.' using errcode = '22023';
+    end if;
+    update auth.users
+      set encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf')),
+        updated_at = now()
+      where id = target;
+  end if;
+end
+$fn$;
+
+-- Deletes another admin: their admin access and their Supabase Auth account (they can no longer
+-- sign in). Admins cannot delete themselves, so there is always at least one.
+create or replace function stepq.delete_admin(target uuid)
+returns void
+language plpgsql volatile security definer set search_path = ''
+as $fn$
+begin
+  if not stepq.is_admin() then
+    raise exception 'Only admins can delete admins.' using errcode = '42501';
+  end if;
+  if target = (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid then
+    raise exception 'You cannot delete yourself.' using errcode = '22023';
+  end if;
+  delete from stepq.admins where user_id = target;
+  delete from auth.identities where user_id = target;
+  delete from auth.users where id = target;
+end
+$fn$;
+
+revoke all on function stepq.update_admin(uuid, text, text, text) from public;
+revoke all on function stepq.delete_admin(uuid) from public;
+grant execute on function stepq.update_admin(uuid, text, text, text) to authenticated;
+grant execute on function stepq.delete_admin(uuid) to authenticated;
 revoke all on function stepq.add_admin(text, text) from public;
 revoke all on function stepq.remove_admin(uuid) from public;
 grant execute on function stepq.add_admin(text, text) to authenticated;

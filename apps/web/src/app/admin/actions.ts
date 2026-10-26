@@ -3,7 +3,7 @@
 import { cookies, headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { addAdmin, asUser, isAdmin, removeAdmin } from '@/server/admin/data';
+import { addAdmin, asUser, deleteAdmin, isAdmin, updateAdmin } from '@/server/admin/data';
 import {
   ACCESS_COOKIE,
   REFRESH_COOKIE,
@@ -56,11 +56,22 @@ export type AddAdminState = { error?: string; done?: string; email?: string };
 
 export async function addAdminAction(_prev: AddAdminState, form: FormData): Promise<AddAdminState> {
   const email = String(form.get('email') ?? '').trim();
+  const name = String(form.get('name') ?? '').trim();
   const password = String(form.get('password') ?? '');
   const user = await adminUser();
   if (!user) return { error: 'Your session has ended. Sign in again.', email };
   try {
-    const outcome = await asUser(user, (c) => addAdmin(c, email, password));
+    const outcome = await asUser(user, async (c) => {
+      const result = await addAdmin(c, email, password);
+      if (name) {
+        const { rows } = await c.query<{ user_id: string }>(
+          'select user_id from stepq.admins where email = lower(trim($1))',
+          [email],
+        );
+        if (rows[0]) await updateAdmin(c, rows[0].user_id, { name });
+      }
+      return result;
+    });
     revalidatePath('/admin');
     return {
       done:
@@ -75,12 +86,40 @@ export async function addAdminAction(_prev: AddAdminState, form: FormData): Prom
   }
 }
 
-export async function removeAdminAction(form: FormData): Promise<void> {
+export type EditAdminState = { error?: string };
+
+export async function updateAdminAction(
+  _prev: EditAdminState,
+  form: FormData,
+): Promise<EditAdminState> {
+  const user = await adminUser();
+  if (!user) return { error: 'Your session has ended. Sign in again.' };
+  const target = String(form.get('userId') ?? '');
+  try {
+    await asUser(user, (c) =>
+      updateAdmin(c, target, {
+        name: String(form.get('name') ?? ''),
+        email: String(form.get('email') ?? ''),
+        password: String(form.get('password') ?? ''),
+      }),
+    );
+  } catch (e) {
+    if (e instanceof ApiError) return { error: e.message };
+    console.error('update admin', loggable(e));
+    return { error: 'Could not save. Try again in a minute.' };
+  }
+  revalidatePath('/admin');
+  redirect('/admin?t=admins&saved=1');
+}
+
+export async function deleteAdminAction(form: FormData): Promise<void> {
   const user = await adminUser();
   if (!user) redirect('/admin/login');
   const target = String(form.get('userId') ?? '');
-  await asUser(user, (c) => removeAdmin(c, target)).catch((e) => {
+  if (form.get('confirm') !== 'yes') redirect(`/admin?t=admins&edit=${encodeURIComponent(target)}`);
+  await asUser(user, (c) => deleteAdmin(c, target)).catch((e) => {
     if (!(e instanceof ApiError)) throw e;
   });
   revalidatePath('/admin');
+  redirect('/admin?t=admins&deleted=1');
 }
