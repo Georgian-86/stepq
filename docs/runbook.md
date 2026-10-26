@@ -1,78 +1,80 @@
 # StepQ pre-launch site — runbook
 
-How the pieces are hosted, how to deploy them, and how to run the site day to day.
+How the site is hosted, how to configure it, and how to run it day to day.
 
 ## Where things run
 
-| Part | Where | Deploys |
-|---|---|---|
-| Website (`apps/web`, Next.js) | Vercel project `stepq` (team golus-projects) | Automatically on every push to the connected branch |
-| Callable Functions, mail trigger (`functions/`) | Firebase project | `Deploy backend` GitHub Action (manual) |
-| Firestore rules + indexes, Storage rules | Firebase project | Same action |
+| Part | Where |
+|---|---|
+| Website and API (`apps/web`, Next.js; API routes under `src/app/api`) | Vercel project `stepq` (team golus-projects), functions in Mumbai (`bom1`). Deploys on every push. |
+| Database | Supabase project `koagkmedvsplbgmltehk` (Mumbai), schema `stepq` |
+| Email | Sent by the API after each request, through SMTP (or Resend) |
 
-Firebase projects (`.firebaserc`): `staging` → `stepq-staging-43f0d`. A production project gets its own alias (`production`) when it exists.
+`functions/` (the earlier Firebase backend) is no longer deployed; it is kept for reference.
 
-## One-time setup: Firebase project
+## Database (Supabase)
 
-1. **Blaze plan** with a working billing account (Settings → Usage and billing). Set a budget alert.
-2. **Firestore**: Build → Firestore Database → Create, `(default)`, location `asia-south1`, production mode.
-3. **Storage**: Build → Storage → Get started, location `asia-south1`, production mode.
-4. **Web app**: Project settings → General → Your apps → `</>`, nickname `web`. Copy the config values into Vercel (below).
-5. **App Check**: Build → App Check → register the web app with **reCAPTCHA Enterprise**. Domains: `vercel.app` (preview) and `stepq.in`. Copy the site key into Vercel. Do not turn on "Enforce" for Firestore reads of `public/*` until the site is live with App Check.
-6. **Deploy key for GitHub**: Google Cloud → IAM → Service accounts → create `github-deployer` with roles *Editor*, *Service Account User* and *Secret Manager Admin* (staging; use narrower roles in production). Keys → Add key → JSON. Save the whole JSON as the GitHub repository secret `FIREBASE_SA_STAGING` (`FIREBASE_SA_PROD` for production). Never paste it anywhere else.
-7. **Signed résumé links**: give the Functions runtime service account (`<project-number>-compute@developer.gserviceaccount.com`) the role *Service Account Token Creator* on itself, so it can sign the 7-day résumé URLs in team-application emails.
+The tables are created automatically on the first request (`apps/web/src/server/schema.ts`; the
+same SQL can be pasted into Supabase → SQL editor). They live in the `stepq` schema, which the
+Supabase REST API does not expose, with row-level security on and no policies, so only the
+server's own connection can read them. See them in Supabase → Table Editor → schema `stepq`:
+
+| Table | What |
+|---|---|
+| `waitlist` | Everyone who joined, their position and reserved username |
+| `team_applications` | Join-the-team applications, résumé PDF included |
+| `ambassador_applications` | Ambassador applications (`status` pending / approved) |
+| `backings` | Fund StepQ backings (`status` pending / verified, `wall_name` when on the wall) |
+| `founder_messages` | Connect-with-the-founder messages |
+| `mail` | Every email sent or waiting (`status` queued / sent / failed, `last_error`) |
+| `stats` | The live waitlist count |
+| `rate_limits`, `requests`, `chunks` | Internal (abuse limits, retry safety, large uploads) |
 
 ## Website environment (Vercel → stepq → Settings → Environment Variables)
 
-| Variable | Preview mode (no backend) | Connected to Firebase |
-|---|---|---|
-| `ENABLE_EXPERIMENTAL_COREPACK` | `1` | `1` |
-| `NEXT_PUBLIC_PREVIEW_MODE` | `1` | remove it |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | — | from the web app config |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | — | from the web app config |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | — | e.g. `stepq-staging-43f0d` |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | — | from the web app config |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | — | from the web app config |
-| `NEXT_PUBLIC_RECAPTCHA_KEY` | — | App Check site key |
+| Variable | Value |
+|---|---|
+| `ENABLE_EXPERIMENTAL_COREPACK` | `1` |
+| `DATABASE_URL` (**Sensitive**) | Supabase → Connect → **Transaction pooler**: `postgresql://postgres.koagkmedvsplbgmltehk:<password>@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`. The direct `db.…supabase.co` host is IPv6-only and does not work from Vercel. If the password has `@ : / ? #` in it, URL-encode it. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (**Sensitive**) | The mailbox `connect@stepq.in`'s SMTP settings, e.g. Google Workspace `smtp.gmail.com` / `465` / `connect@stepq.in` / an app password; Zoho `smtp.zoho.in` / `465`; Hostinger `smtp.hostinger.com` / `465`. |
+| `RESEND_API_KEY` (optional, **Sensitive**) | Instead of SMTP: a Resend key for the verified domain `stepq.in`. |
+| `SITE_URL` (optional) | Public URL used in emailed links. Default `https://stepq.in`. |
+| `MAIL_FROM`, `FOUNDER_INBOX` (optional) | Defaults `StepQ <connect@stepq.in>` and `connect@stepq.in`. |
+| `ACTION_SIGNING_SECRET` (optional, **Sensitive**) | Signs the emailed Approve / Verify / reserve / résumé links. Default: derived from `DATABASE_URL`. Changing it (or the database password) voids links already sent. |
+| `AMBASSADOR_KIT_URL` (optional) | Link in the ambassador approval email. |
+| `NEXT_PUBLIC_PREVIEW_MODE` | **Remove** for the live site. `1` = demo build with no backend (banner, noindex). |
 
-`NEXT_PUBLIC_*` values are baked in at build time: redeploy after changing them.
+Changes apply to new deployments: redeploy after editing (Deployments → ⋯ → Redeploy).
 
-## Functions configuration
+Without SMTP or Resend set, emails wait in the `mail` table (`queued`) and go out after the next
+form submission once a transport is configured.
 
-Non-secret parameters live in `functions/.env.<project-id>` (committed for staging):
-`MAIL_FROM`, `FOUNDER_INBOX`, `SITE_URL` (the site's public URL, used in Approve/Verify links), `AMBASSADOR_KIT_URL`, `MAIL_TRANSPORT` (`outbox` = queue mail in Firestore without sending; empty = send through Resend).
+## Domain
 
-Secrets (Secret Manager), created by the deploy action if missing:
-
-- `ACTION_SIGNING_SECRET` — 32 random bytes, generated once. Rotating it invalidates every outstanding Approve/Verify/reserve link.
-- `RESEND_API_KEY` — from the GitHub secret `RESEND_API_KEY`; a placeholder is stored while staging runs in outbox mode.
-
-## Sending real email (Resend)
-
-1. Create a Resend account, add the domain `stepq.in`, and add the DNS records it shows (SPF, DKIM, and the return-path MX/TXT) at the domain registrar. Wait until Resend marks the domain verified.
-2. Create an API key (sending access only) and save it as the GitHub secret `RESEND_API_KEY`.
-3. Set `MAIL_FROM` to the confirmed sender address and `MAIL_TRANSPORT=` (empty) in the project's `functions/.env.<project-id>`, commit, and run the deploy action.
-
-## Deploying the backend
-
-GitHub → Actions → **Deploy backend** → Run workflow → choose `staging` or `production`.
-Production first runs `pnpm check:launch`, which fails while client content is missing (privacy policy, job descriptions, T&C, social links, real sender address…). Fix the listed items or pass the accepted gaps with `--allow`. `recaptchaKey` always reads "unknown" (the check looks for `apps/web/apphosting.yaml`, but the site runs on Vercel): confirm `NEXT_PUBLIC_RECAPTCHA_KEY` in the Vercel settings and allow it.
+Vercel → stepq → Settings → Domains → add `stepq.in` and `www.stepq.in`, then at the registrar:
+`A  @  76.76.21.21` and `CNAME  www  cname.vercel-dns.com` (use the exact values Vercel shows).
 
 ## Smoke test after a deploy
 
-On the deployed site, with an inbox you control:
+On the live site, with an inbox you control:
 
 1. Join the waitlist → the live count goes up → reserve a username.
-2. Join the team with a small PDF résumé.
+2. Join the team with a small PDF résumé → the alert in connect@stepq.in has a working résumé link.
 3. Fund: pick ₹101, tap Pay, then "I've paid" (no real payment needed for the test).
 4. Apply as an ambassador.
 5. Send a founder message.
-6. In Firestore, check one document each in `waitlist`, `usernames`, `teamApplications`, `backings`, `ambassadorApplications`, `founderMessages`, and the `mail` queue entries (`status: sent`, or queued in outbox mode).
+6. In Supabase → Table Editor (schema `stepq`), check one row in each table and that `mail` rows read `sent`.
 7. Open the Approve link from the ambassador alert and the Verify link from the backing alert, confirm both, and check the backer appears on the home page wall.
-8. Delete the test documents afterwards.
+8. Delete the test rows afterwards.
 
 ## Day to day
 
 - **Verify a backing**: open the "Verify" link in the backing alert email, check the amount and reference against the UPI app, then press **Confirm**. The backer's name joins the wall if they opted in.
 - **Approve an ambassador**: open the "Approve" link in the application email and press **Confirm**. The applicant gets the approval email.
 - Links are single-use in effect (confirming twice does nothing) and expire after 30 days.
+- **Export** any table as CSV from the Supabase Table Editor.
+
+## Tests
+
+- `pnpm test` — unit tests. Server tests need a Postgres: `TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/stepq_test pnpm --filter web test`.
+- `pnpm e2e` — Playwright against a production build and a local Postgres (`stepq_e2e`).
