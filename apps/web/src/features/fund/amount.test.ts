@@ -37,7 +37,7 @@ describe('thank-you page', () => {
 
   it('includes a valid amount only', () => {
     const tail =
-      ' Once StepQ verifies it, you will get a personal email and your name will join the sponsor wall.';
+      ' Once StepQ verifies it, your name will join the sponsor wall if you chose to show it.';
     expect(thankYouMessage('501')).toBe(`We have recorded your payment of ₹501.${tail}`);
     expect(thankYouMessage('100000')).toBe(`We have recorded your payment of ₹1,00,000.${tail}`);
     for (const bad of [null, '', 'abc', '0', '1.5', '100001', '12abc', '-5'])

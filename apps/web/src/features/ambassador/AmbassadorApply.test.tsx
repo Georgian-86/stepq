@@ -43,7 +43,7 @@ describe('AmbassadorApply (W09 + W10)', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Ambassador Terms & Conditions' });
     expect(dialog).toHaveTextContent('1. Eligibility');
     expect(dialog).toHaveTextContent(
-      'How you or StepQ can end the arrangement. Final wording to come from StepQ.',
+      'You or StepQ can end the arrangement at any time by email to connect@stepq.in. When it ends, stop using StepQ branding.',
     );
     await user.click(screen.getByRole('button', { name: 'I agree' }));
     expect(screen.getByLabelText('Full name')).toHaveValue('Riya Sharma');

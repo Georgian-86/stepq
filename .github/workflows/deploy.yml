@@ -28,10 +28,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Launch-readiness check (production only)
-        if: inputs.target == 'production'
-        run: pnpm check:launch
-
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:

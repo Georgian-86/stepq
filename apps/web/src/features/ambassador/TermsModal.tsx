@@ -5,7 +5,6 @@ import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { site, type SiteContent } from '@/content/site';
 import { useModalParam } from '@/lib/useModalParam';
-import { PLACEHOLDER_TERMS } from './terms';
 
 const TITLE_ID = 'terms-title';
 
@@ -22,7 +21,7 @@ export function TermsModal({
   content?: SiteContent;
 }) {
   const { isOpen, close } = useModalParam('terms');
-  const sections = content.ambassadorTerms ?? PLACEHOLDER_TERMS;
+  const sections = content.ambassadorTerms;
 
   return (
     <Modal open={isOpen} onClose={() => close()} labelledBy={TITLE_ID} wide>

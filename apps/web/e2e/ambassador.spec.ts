@@ -28,12 +28,7 @@ test('T&C is required and keeps typed values; approve via the signed /confirm pa
 }) => {
   await page.goto('/ambassadors');
   await expect(page.getByRole('heading', { name: 'Become a StepQ ambassador' })).toBeVisible();
-  // No eligibility content yet: the Figma placeholder.
-  await expect(
-    page.getByText(
-      'Eligibility criteria and the full terms come from StepQ and will be added here before launch.',
-    ),
-  ).toBeVisible();
+  await expect(page.getByText(/^Anyone 18 or older who lives in India/)).toBeVisible();
 
   await fill(page);
   const apply = form(page);

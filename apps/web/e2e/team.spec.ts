@@ -18,28 +18,36 @@ test('opening a role pre-selects it; a non-PDF is refused; a double submit makes
   await expect(page.getByRole('heading', { name: 'Join the StepQ team' })).toBeVisible();
 
   // The first role starts open, as in Figma; opening another closes it and selects the new one.
-  await expect(roleCard(page, 'Marketing intern')).toHaveAttribute('aria-expanded', 'true');
-  await roleCard(page, 'Design intern').click();
-  await expect(roleCard(page, 'Design intern')).toHaveAttribute('aria-expanded', 'true');
-  await expect(roleCard(page, 'Design intern')).toContainText('Hide JD');
-  await expect(roleCard(page, 'Marketing intern')).toHaveAttribute('aria-expanded', 'false');
-  // Only the open card shows its JD text (the Figma copy until site.ts has the real one).
-  await expect(
-    page.getByText(/^The job description for each role is written and shared by StepQ\./),
-  ).toHaveCount(4);
+  await expect(roleCard(page, 'Growth Marketing Executive')).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  await roleCard(page, 'Design & Creative Intern').click();
+  await expect(roleCard(page, 'Design & Creative Intern')).toHaveAttribute('aria-expanded', 'true');
+  await expect(roleCard(page, 'Design & Creative Intern')).toContainText('Hide JD');
+  await expect(roleCard(page, 'Growth Marketing Executive')).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  // Only the open card shows its job description.
   await expect(page.locator('#role-design-jd')).toBeVisible();
   await expect(page.locator('#role-design-jd')).toContainText(
-    'It covers what you will work on, the time it needs each week, and who you report to.',
+    'Create clear, energetic, brand-consistent visuals for StepQ’s app',
   );
-  await expect(page.locator('#role-marketing-jd')).toBeHidden();
-  // No JD file yet, so no download row.
-  await expect(page.getByText('Download', { exact: true })).toHaveCount(0);
+  await expect(page.locator('#role-design-jd')).toContainText(
+    'Share a portfolio or 3–5 design samples.',
+  );
+  await expect(page.locator('#role-growth-jd')).toBeHidden();
+  await expect(roleCard(page, 'Design & Creative Intern')).toContainText(
+    'Internship · Graphic Design & Visual Communication',
+  );
+  await expect(page.getByText(/App Developer/i)).toHaveCount(0);
   const apply = form(page);
   await expect(apply.getByLabel('Position applied for')).toHaveValue('design');
 
   // Changing the select leaves the cards alone.
-  await apply.getByLabel('Position applied for').selectOption('tech');
-  await expect(roleCard(page, 'Design intern')).toHaveAttribute('aria-expanded', 'true');
+  await apply.getByLabel('Position applied for').selectOption('social');
+  await expect(roleCard(page, 'Design & Creative Intern')).toHaveAttribute('aria-expanded', 'true');
   await apply.getByLabel('Position applied for').selectOption('design');
 
   await apply.getByLabel('Resume').setInputFiles(fixture('fake.pdf'));
@@ -61,7 +69,7 @@ test('opening a role pre-selects it; a non-PDF is refused; a double submit makes
   await expect(page).toHaveURL(/\/join-the-team\/sent\?name=Riya/);
   await expect(page.getByRole('heading', { name: 'Application sent' })).toBeVisible();
   await expect(page.getByRole('main')).toContainText(
-    'Thanks, Riya. StepQ will review your application for Design intern (UI and brand) and reply to riya.sharma@gmail.com.',
+    'Thanks, Riya. StepQ will review your application for Design & Creative Intern and reply to riya.sharma@gmail.com.',
   );
   await expect(page.getByRole('link', { name: 'Back to home' })).toHaveAttribute('href', '/');
 
@@ -80,7 +88,7 @@ test('opening a role pre-selects it; a non-PDF is refused; a double submit makes
 test('an empty submit lists every missing field and keeps ids unique', async ({ page }) => {
   await page.goto('/join-the-team');
   const apply = form(page);
-  await apply.getByLabel('Position applied for').selectOption('tech');
+  await apply.getByLabel('Position applied for').selectOption('social');
   await apply.getByRole('button', { name: 'Submit application' }).click();
   const summary = apply.getByRole('alert').first();
   await expect(summary).toBeFocused();

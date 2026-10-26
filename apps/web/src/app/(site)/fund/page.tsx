@@ -19,8 +19,8 @@ const STEPS = [
     body: 'On your phone, Pay opens your UPI app. On a computer, scan the QR code.',
   },
   {
-    title: 'StepQ verifies and emails you',
-    body: 'StepQ checks each payment and writes to you personally.',
+    title: 'StepQ verifies your payment',
+    body: 'StepQ checks each payment and contacts you on the number you gave.',
   },
 ];
 
@@ -41,8 +41,8 @@ export default function FundPage() {
             Fund StepQ
           </h1>
           <p className="type-web-lead text-muted">
-            Back StepQ with any amount. Once StepQ verifies your payment, you get a personal
-            thank-you email and your name joins the sponsor wall.
+            Back StepQ with any amount. Once StepQ verifies your payment, your name joins the
+            sponsor wall (if you choose to show it).
           </p>
           <ol className="flex flex-col gap-l">
             {STEPS.map((step, i) => (

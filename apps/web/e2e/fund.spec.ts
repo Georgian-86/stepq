@@ -79,7 +79,7 @@ test.describe('desktop', () => {
     await expect(page).toHaveURL(/\/fund\/thank-you\?amount=251$/);
     await expect(page.getByRole('heading', { name: 'Thank you for backing StepQ' })).toBeVisible();
     await expect(page.getByRole('main')).toContainText(
-      'We have recorded your payment of ₹251. Once StepQ verifies it, you will get a personal email and your name will join the sponsor wall.',
+      'We have recorded your payment of ₹251. Once StepQ verifies it, your name will join the sponsor wall if you chose to show it.',
     );
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
   });
@@ -146,7 +146,7 @@ test.describe('desktop', () => {
     for (const q of ['', '?amount=abc', '?amount=0', '?amount=100001', '?amount=1.5']) {
       await page.goto(`/fund/thank-you${q}`);
       await expect(page.getByRole('main')).toContainText(
-        'We have recorded your payment. Once StepQ verifies it, you will get a personal email',
+        'We have recorded your payment. Once StepQ verifies it, your name will join the sponsor wall',
       );
     }
     await expect(page.getByRole('link', { name: 'Back to home' })).toHaveAttribute('href', '/');

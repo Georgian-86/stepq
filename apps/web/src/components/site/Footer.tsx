@@ -94,7 +94,6 @@ export function Footer({ content = site }: { content?: SiteContent }) {
         </div>
         <div className="type-web-small flex flex-col gap-s border-t border-line pt-[20px] text-muted md:flex-row md:justify-between">
           <p>© 2026 StepQ. Made in India.</p>
-          <p>hello@stepq.in is a placeholder until StepQ confirms its address.</p>
         </div>
       </div>
     </footer>

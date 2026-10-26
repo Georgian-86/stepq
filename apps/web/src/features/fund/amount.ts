@@ -35,5 +35,5 @@ export function thankYouMessage(amountParam: string | null): string {
   if (PREVIEW_MODE) return `${PREVIEW_NOTHING_SAVED} ${PREVIEW_UPI_NOTE}`;
   const n = amountParam && /^\d+$/.test(amountParam) ? Number(amountParam) : undefined;
   const of = isValidAmount(n) ? ` of ${formatInr(n)}` : '';
-  return `We have recorded your payment${of}. Once StepQ verifies it, you will get a personal email and your name will join the sponsor wall.`;
+  return `We have recorded your payment${of}. Once StepQ verifies it, your name will join the sponsor wall if you chose to show it.`;
 }

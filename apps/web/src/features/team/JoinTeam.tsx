@@ -8,7 +8,7 @@ import { useZodForm } from '@/lib/useZodForm';
 import { RoleList } from './RoleList';
 import { NO_RESUME, TeamForm } from './TeamForm';
 
-const FIRST = site.roles[0]?.id ?? null;
+const FIRST = site.roles[0] ?? null;
 
 /**
  * W04 body (`10:144`): open roles and the application form. Opening a role selects it in

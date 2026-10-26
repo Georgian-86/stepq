@@ -3,7 +3,6 @@ import { GUTTER } from '@/components/site/links';
 import { Icon } from '@/components/ui/Icon';
 import { site } from '@/content/site';
 import { AmbassadorApply } from '@/features/ambassador/AmbassadorApply';
-import { PLACEHOLDER_ELIGIBILITY } from '@/features/ambassador/terms';
 
 export const metadata: Metadata = {
   title: 'Become an ambassador',
@@ -46,7 +45,7 @@ export default function AmbassadorsPage() {
         <div className="flex flex-col gap-s rounded-(--radius-card) bg-mango-soft p-[20px]">
           <h2 className="type-web-body-strong text-ink">Who can apply</h2>
           <p className="type-web-small whitespace-pre-line text-muted">
-            {site.ambassadorEligibility ?? PLACEHOLDER_ELIGIBILITY}
+            {site.ambassadorEligibility}
           </p>
         </div>
       </section>

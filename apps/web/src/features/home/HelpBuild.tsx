@@ -11,7 +11,7 @@ const WAYS: { icon: IconName; title: string; body: string; cta: string; href: st
   {
     icon: 'briefcase-ink',
     title: 'Join the team',
-    body: 'Apply for an unpaid internship on the StepQ team. Open roles in design, marketing, content and tech, each with its own job description.',
+    body: 'Join the StepQ team. Full-time roles in growth, partnerships, community and product, plus social media and design internships, each with its own job description.',
     cta: 'See open roles',
     href: '/join-the-team',
   },

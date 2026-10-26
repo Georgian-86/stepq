@@ -5,7 +5,7 @@ import { JoinTeam } from '@/features/team/JoinTeam';
 export const metadata: Metadata = {
   title: 'Join the team',
   description:
-    'Unpaid internships for people who want to start a walking movement in India. Pick a role and apply.',
+    'Full-time roles and internships for people who want to start a walking movement in India. Pick a role and apply.',
 };
 
 /** W04 Join the team (`10:127`). */
@@ -23,8 +23,8 @@ export default function JoinTheTeamPage() {
             Join the StepQ team
           </h1>
           <p className="type-web-lead max-w-[760px] text-muted">
-            Unpaid internships for people who want to start a walking movement in India. Pick a
-            role, read its job description, and apply in five minutes.
+            Full-time roles and internships for people who want to start a walking movement in
+            India. Pick a role, read its job description, and apply in five minutes.
           </p>
         </div>
       </section>

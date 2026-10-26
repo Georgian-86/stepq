@@ -23,15 +23,15 @@ describe('Footer', () => {
     expect(within(footer).queryByText('YouTube')).not.toBeInTheDocument();
   });
 
-  it('links Collaborate to the founder modal with topic partnership, and mails hello@stepq.in', () => {
+  it('links Collaborate to the founder modal with topic partnership, and mails connect@stepq.in', () => {
     render(<Footer />);
     expect(screen.getByRole('link', { name: 'Collaborate with us' })).toHaveAttribute(
       'href',
       '?modal=founder&topic=partnership',
     );
-    expect(screen.getByRole('link', { name: 'hello@stepq.in' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'connect@stepq.in' })).toHaveAttribute(
       'href',
-      'mailto:hello@stepq.in',
+      'mailto:connect@stepq.in',
     );
     expect(screen.getByText('Chalo, chalte hain.')).toBeInTheDocument();
     expect(screen.getByText('© 2026 StepQ. Made in India.')).toBeInTheDocument();
