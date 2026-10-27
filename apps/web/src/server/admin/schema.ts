@@ -7,7 +7,8 @@
  * (what `auth.uid()` reads). Every table in `stepq`, including tables added later, gets a
  * read-only policy that lets that role see rows only when `stepq.is_admin()`, i.e. the user is
  * listed in `stepq.admins`. `authenticated` has no write grants: the only writes are the
- * `stepq.*_admin` functions below, which check `stepq.is_admin()` themselves.
+ * `stepq.*_admin` functions and `stepq.set_status` below, which check `stepq.is_admin()`
+ * themselves.
  *
  * The `stepq` schema stays out of Supabase's public REST API, so even a signed-in admin's
  * token cannot reach it from a browser; only this server can.
@@ -194,18 +195,95 @@ revoke all on function stepq.remove_admin(uuid) from public;
 grant execute on function stepq.add_admin(text, text) to authenticated;
 grant execute on function stepq.remove_admin(uuid) to authenticated;
 
+-- An admin sets a row's status from the dashboard. Only the (table, column) pairs and values
+-- listed here can be written, so this is no general write path. Approving an ambassador or
+-- verifying a backing also stamps approved_at / verified_at (and the wall name, computed by the
+-- server from the backer's name, as the emailed verify link does). Returns true the first time
+-- an ambassador is approved, so the server sends the welcome email once.
+create or replace function stepq.set_status(
+  tbl text, row_id text, col text, val text, wall text default null
+)
+returns boolean
+language plpgsql volatile security definer set search_path = ''
+as $fn$
+declare
+  allowed text[];
+  clearable boolean := false;
+  first_time boolean := false;
+  n int;
+begin
+  if not stepq.is_admin() then
+    raise exception 'Only admins can change statuses.' using errcode = '42501';
+  end if;
+  case tbl || '.' || col
+    when 'team_applications.status' then
+      allowed := array['pending_review', 'contacted', 'considered', 'waiting_confirmation',
+        'accepted', 'rejected'];
+    when 'ambassador_applications.status' then
+      allowed := array['pending', 'contacted', 'approved', 'rejected'];
+    when 'backings.status' then
+      allowed := array['pending', 'verified', 'rejected'];
+    when 'mail.reply_status' then
+      allowed := array['revert_pending', 'reverted'];
+      clearable := true;
+    else
+      raise exception 'That status cannot be changed here.' using errcode = '22023';
+  end case;
+  if nullif(val, '') is null and not clearable then
+    raise exception 'Pick a status.' using errcode = '22023';
+  end if;
+  if nullif(val, '') is not null and not (val = any(allowed)) then
+    raise exception 'Unknown status.' using errcode = '22023';
+  end if;
+
+  if tbl = 'team_applications' then
+    update stepq.team_applications set status = val where id::text = row_id;
+  elsif tbl = 'ambassador_applications' then
+    select approved_at is null and val = 'approved' into first_time
+      from stepq.ambassador_applications where id::text = row_id for update;
+    update stepq.ambassador_applications
+      set status = val,
+        approved_at = case when val = 'approved' then coalesce(approved_at, now()) else approved_at end
+      where id::text = row_id;
+  elsif tbl = 'backings' then
+    update stepq.backings
+      set status = val,
+        verified_at = case when val = 'verified' then coalesce(verified_at, now()) else verified_at end,
+        wall_name = case when val = 'verified' and show_on_wall then coalesce(wall_name, nullif(wall, ''))
+          else wall_name end
+      where id::text = row_id;
+  else
+    update stepq.mail set reply_status = nullif(val, '') where id::text = row_id;
+  end if;
+  get diagnostics n = row_count;
+  if n = 0 then
+    raise exception 'That record no longer exists.' using errcode = '22023';
+  end if;
+  return coalesce(first_time, false);
+end
+$fn$;
+revoke all on function stepq.set_status(text, text, text, text, text) from public;
+grant execute on function stepq.set_status(text, text, text, text, text) to authenticated;
+
+-- Every table, including ones added later, is readable by admins only. The check is wrapped in
+-- a subquery so Postgres runs it once per query, not once per row.
 do $$
 declare t text;
 begin
   for t in select tablename from pg_tables where schemaname = 'stepq' loop
     execute format('alter table stepq.%I enable row level security', t);
     execute format('grant select on stepq.%I to authenticated', t);
-    if not exists (
+    if exists (
       select 1 from pg_policies
       where schemaname = 'stepq' and tablename = t and policyname = 'admins_read'
     ) then
       execute format(
-        'create policy admins_read on stepq.%I for select to authenticated using (stepq.is_admin())',
+        'alter policy admins_read on stepq.%I to authenticated using ((select stepq.is_admin()))',
+        t
+      );
+    else
+      execute format(
+        'create policy admins_read on stepq.%I for select to authenticated using ((select stepq.is_admin()))',
         t
       );
     end if;

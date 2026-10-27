@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import pg from 'pg';
 import { env } from './env';
 import { SCHEMA_SQL } from './schema';
@@ -52,14 +53,27 @@ function getPool(): pg.Pool {
   return pool;
 }
 
-/** Creates the tables on the first query of each server instance (idempotent, serialised). */
+/** Marks the schema as applied (a comment on `stepq`), so later cold starts skip the DDL. */
+const SCHEMA_MARK = `schema:${createHash('sha256').update(SCHEMA_SQL).digest('hex').slice(0, 16)}`;
+
+/**
+ * Creates the tables on the first query of each server instance (idempotent, serialised). When
+ * the database already has this exact schema, that is one catalog read instead of DDL, which
+ * would otherwise take table locks on every cold start.
+ */
 function ensureSchema(): Promise<void> {
   ready ??= (async () => {
     const c = await getPool().connect();
     try {
+      const { rows } = await c.query<{ current: boolean | null }>(
+        `select obj_description(to_regnamespace('stepq')::oid, 'pg_namespace') = $1 as current`,
+        [SCHEMA_MARK],
+      );
+      if (rows[0]?.current) return;
       await c.query('begin');
       await c.query('select pg_advisory_xact_lock(72787)');
       await c.query(SCHEMA_SQL);
+      await c.query(`comment on schema stepq is '${SCHEMA_MARK}'`);
       await c.query('commit');
     } catch (e) {
       await c.query('rollback').catch(() => {});
