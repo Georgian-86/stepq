@@ -66,9 +66,31 @@ mail (GoDaddy → Email & Office shows a warning until it can).
 
 ## Admin dashboard (`/admin`)
 
-`stepq.in/admin` lists every row of every table in the `stepq` schema (tables added later show up
-automatically), with search, paging, CSV download and résumé downloads. Records are read-only; the one thing an
-admin can change is who else is an admin.
+`stepq.in/admin` opens on **Stats** (new records per day for every table, statuses, and website
+visits and clicks), and lists every row of every table in the `stepq` schema (tables added later
+show up automatically) with search, filters, date ranges, sorting, a column picker, a details
+panel per record, résumé downloads, and downloads (CSV or JSON; chosen columns; every row or only
+the filtered ones). Records are read-only except for statuses an admin sets and who else is an
+admin:
+
+- **Job applications**: Pending for review, Contacted, Considered, Waiting confirmation, Accepted,
+  Rejected.
+- **Brand ambassadors**: Pending, Contacted, Approved, Rejected. Approving sends the ambassador
+  welcome email the first time, as the emailed approve link does.
+- **Backings**: Pending, Verified, Rejected. Verified backers who opted in show on the backers wall.
+- **Mail**: Reply = Revert pending or Reverted (separate from the delivery status).
+
+Statuses are written only through `stepq.set_status`, which checks the caller is an admin and
+allows just these columns and values.
+
+**Website clicks** (`stepq.site_events`) are counted by the site itself through `/api/track`:
+the page, what was clicked (its text), and the referring site's host. No cookies, IP addresses
+or user agents are stored.
+
+**Schema changes** are applied by the app, not by hand: `apps/web/src/server/schema.ts` (site
+tables) on a server's first query and `apps/web/src/server/admin/schema.ts` (policies and admin
+functions) on its first `/admin` request. Both are idempotent and additive, and each is marked as
+applied (a comment on the `stepq` schema / `stepq.is_admin`), so later cold starts skip the DDL.
 
 **How access is enforced.** Sign-in is Supabase Auth (email + password). The server checks the
 token with Supabase, then runs every dashboard query as Supabase's `authenticated` role with that

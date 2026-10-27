@@ -32,12 +32,17 @@ const {
   isAdmin,
   listTables,
   readAdmin,
+  readFacets,
+  readOverview,
+  readRow,
   readTable,
   readResume,
   removeAdmin,
-  tableCsv,
+  setStatus,
+  tableExport,
   updateAdmin,
 } = await import('./admin/data');
+const { POST: trackPOST } = await import('../app/api/track/route');
 
 let ipSeq = 0;
 /** Each call gets a fresh IP unless one is given, so rate limits only bite where tested. */
@@ -143,7 +148,8 @@ describe.skipIf(!url)('API on Postgres', () => {
   beforeEach(async () => {
     setMailTransport(undefined);
     await query(`truncate stepq.waitlist, stepq.team_applications, stepq.ambassador_applications,
-      stepq.backings, stepq.founder_messages, stepq.mail, stepq.rate_limits, stepq.requests, stepq.chunks`);
+      stepq.backings, stepq.founder_messages, stepq.mail, stepq.rate_limits, stepq.requests, stepq.chunks,
+      stepq.site_events`);
     await query('update stepq.stats set waitlist_count = 0');
   });
   afterAll(() => closeDb());
@@ -570,7 +576,7 @@ describe.skipIf(!url)('API on Postgres', () => {
         const byName = Object.fromEntries(tables.map((t) => [t.name, t]));
         expect(tables[0]!.name).toBe('waitlist');
         expect(byName.waitlist!.count).toBe(1);
-        expect(byName.founder_messages).toMatchObject({ label: 'Reach-outs', count: 1 });
+        expect(byName.founder_messages).toMatchObject({ label: 'Colab reqs', count: 1 });
         expect(byName.later_table).toMatchObject({ label: 'later_table', count: 1 });
         expect(byName.rate_limits!.internal).toBe(true);
       } finally {
@@ -596,12 +602,198 @@ describe.skipIf(!url)('API on Postgres', () => {
         const file = await readResume(c, apps.ids[0]!);
         expect(file!.resume.equals(fixture('resume.pdf'))).toBe(true);
 
-        const csv = await tableCsv(c, 'waitlist');
+        const csv = await tableExport(c, 'waitlist');
         expect(csv.split('\r\n')[0]).toContain('name,email');
         expect(csv).toContain('kabir@gmail.com');
         await expect(readTable(c, 'nope"; drop table x; --')).rejects.toThrow('No such table');
       });
       expect(await asUser(stranger, (c) => readResume(c, randomUUID()))).toBeNull();
+    });
+
+    it('filters, sorts and counts filter values; never trusts column names', async () => {
+      await ok('joinWaitlist', join());
+      await ok(
+        'joinWaitlist',
+        join({ name: 'Kabir Rao', email: 'kabir@gmail.com', gender: 'male' }),
+      );
+      await ok('joinWaitlist', join({ name: 'Ananya Iyer', email: 'ananya@gmail.com' }));
+      await asUser(admin, async (c) => {
+        const women = await readTable(c, 'waitlist', { filters: { gender: 'female' } });
+        expect(women.total).toBe(2);
+        const byName = await readTable(c, 'waitlist', { sort: 'name', dir: 'asc' });
+        const name = byName.columns.findIndex((col) => col.name === 'name');
+        expect(byName.rows.map((r) => r[name])).toEqual([
+          'Ananya Iyer',
+          'Kabir Rao',
+          'Riya Sharma',
+        ]);
+        // Unknown columns in filters and sorts are ignored, not interpolated.
+        const odd = await readTable(c, 'waitlist', {
+          filters: { "x\" = '' or true; --": 'y' },
+          sort: 'name; drop table stepq.waitlist',
+        });
+        expect(odd.total).toBe(3);
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        expect((await readTable(c, 'waitlist', { from: today, to: today })).total).toBe(3);
+        expect((await readTable(c, 'waitlist', { to: '2020-01-01' })).total).toBe(0);
+        const facets = await readFacets(c, 'waitlist', ['gender'], { filters: { gender: 'male' } });
+        expect(facets.gender).toEqual([
+          { value: 'female', count: 2 },
+          { value: 'male', count: 1 },
+        ]);
+        const row = await readRow(c, 'waitlist', women.ids[0]!);
+        expect(row!.values).toContain('ananya@gmail.com');
+      });
+    });
+
+    it('downloads chosen columns of filtered rows as CSV or JSON', async () => {
+      await ok('joinWaitlist', join());
+      await ok(
+        'joinWaitlist',
+        join({ name: 'Kabir Rao', email: 'kabir@gmail.com', gender: 'male' }),
+      );
+      await asUser(admin, async (c) => {
+        const csv = await tableExport(c, 'waitlist', {
+          columns: ['name', 'email'],
+          filters: { gender: 'male' },
+        });
+        expect(csv).toBe('name,email\r\nKabir Rao,kabir@gmail.com\r\n');
+        const json = JSON.parse(
+          await tableExport(c, 'waitlist', { columns: ['name'], format: 'json' }),
+        );
+        expect(json).toEqual([{ name: 'Kabir Rao' }, { name: 'Riya Sharma' }]);
+        await expect(tableExport(c, 'waitlist', { columns: ['nope'] })).rejects.toThrow(
+          'Pick at least one column.',
+        );
+      });
+    });
+
+    it('admins set statuses; only listed values, only admins, side effects once', async () => {
+      await ok('submitTeamApplication', team(fixture('resume.pdf')));
+      await ok('submitAmbassador', ambassador());
+      await ok('recordBacking', backing({ name: 'riya sharma' }));
+      const one = async (sql: string, params: unknown[] = []) =>
+        (await query<any>(sql, params)).rows[0]!;
+      const { id: appId } = await one('select id::text from stepq.team_applications');
+      const { id: ambId } = await one('select id::text from stepq.ambassador_applications');
+      const { id: backId } = await one('select id::text from stepq.backings');
+      const { id: mailId } = await one('select id::text from stepq.mail limit 1');
+
+      expect((await one('select status from stepq.team_applications')).status).toBe(
+        'pending_review',
+      );
+      await asUser(admin, (c) => setStatus(c, 'team_applications', appId, 'waiting_confirmation'));
+      expect((await one('select status from stepq.team_applications')).status).toBe(
+        'waiting_confirmation',
+      );
+      await expect(
+        asUser(admin, (c) => setStatus(c, 'team_applications', appId, 'hired')),
+      ).rejects.toThrow('Unknown status.');
+      await expect(asUser(admin, (c) => setStatus(c, 'waitlist', appId, 'x'))).rejects.toThrow(
+        'That status cannot be changed here.',
+      );
+      await expect(
+        asUser(admin, (c) => setStatus(c, 'team_applications', randomUUID(), 'contacted')),
+      ).rejects.toThrow('That record no longer exists.');
+      await expect(
+        asUser(stranger, (c) => setStatus(c, 'team_applications', appId, 'rejected')),
+      ).rejects.toThrow('Only admins can change statuses.');
+      // The function is the only write path: the table itself stays read-only for admins.
+      await expect(
+        asUser(admin, (c) => c.query(`update stepq.team_applications set status = 'accepted'`)),
+      ).rejects.toThrow(/permission denied/);
+
+      expect(
+        await asUser(admin, (c) => setStatus(c, 'ambassador_applications', ambId, 'approved')),
+      ).toBe(true);
+      await asUser(admin, (c) => setStatus(c, 'ambassador_applications', ambId, 'contacted'));
+      expect(
+        await asUser(admin, (c) => setStatus(c, 'ambassador_applications', ambId, 'approved')),
+      ).toBe(false);
+      const amb = await one('select status, approved_at from stepq.ambassador_applications');
+      expect(amb.status).toBe('approved');
+      expect(amb.approved_at).toBeInstanceOf(Date);
+
+      await asUser(admin, (c) => setStatus(c, 'backings', backId, 'verified'));
+      const res = await backersGET();
+      expect(((await res.json()) as { names: string[] }).names).toEqual(['Riya S.']);
+      await asUser(admin, (c) => setStatus(c, 'backings', backId, 'rejected'));
+      expect(((await (await backersGET()).json()) as { names: string[] }).names).toEqual([]);
+
+      await asUser(admin, (c) => setStatus(c, 'mail', mailId, 'revert_pending'));
+      expect(
+        (await one('select reply_status from stepq.mail where id = $1', [mailId])).reply_status,
+      ).toBe('revert_pending');
+      await asUser(admin, (c) => setStatus(c, 'mail', mailId, ''));
+      expect(
+        (await one('select reply_status from stepq.mail where id = $1', [mailId])).reply_status,
+      ).toBeNull();
+      await expect(asUser(admin, (c) => setStatus(c, 'backings', backId, ''))).rejects.toThrow(
+        'Pick a status.',
+      );
+    });
+
+    it('records anonymous website visits and clicks, and charts every table', async () => {
+      const track = (body: unknown, headers: Record<string, string> = {}) =>
+        trackPOST(
+          new Request('https://stepq.test/api/track', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', host: 'stepq.test', ...headers },
+            body: JSON.stringify(body),
+          }),
+        );
+      expect(
+        (
+          await track({
+            kind: 'view',
+            path: '/fund?x=1',
+            referrer: 'https://www.instagram.com/p/1',
+          })
+        ).status,
+      ).toBe(204);
+      await track({ kind: 'view', path: '/', referrer: 'https://stepq.test/fund' });
+      await track({ kind: 'click', path: '/', label: '  Join   the waitlist ' });
+      await track({ kind: 'view', path: '/admin' });
+      await track({ kind: 'hack', path: '/' });
+      await track({ kind: 'view', path: 'https://evil.test/' });
+      const events = (
+        await query('select kind, path, label, referrer from stepq.site_events order by id')
+      ).rows;
+      expect(events).toEqual([
+        { kind: 'view', path: '/fund', label: null, referrer: 'www.instagram.com' },
+        { kind: 'view', path: '/', label: null, referrer: null },
+        { kind: 'click', path: '/', label: 'Join the waitlist', referrer: null },
+      ]);
+
+      await ok('joinWaitlist', join());
+      const overview = await asUser(admin, async (c) => readOverview(c, await listTables(c), 7));
+      expect(overview.days).toHaveLength(7);
+      expect(overview.daily.waitlist!.at(-1)).toBe(1);
+      expect(overview.daily.founder_messages).toEqual([0, 0, 0, 0, 0, 0, 0]);
+      expect(overview.daily.rate_limits).toBeUndefined();
+      expect(overview.site!.views.at(-1)).toBe(2);
+      expect(overview.site!.clicked).toEqual([{ label: 'Join the waitlist', count: 1 }]);
+      expect(overview.site!.referrers).toEqual([{ label: 'www.instagram.com', count: 1 }]);
+      expect(overview.statuses.team_applications).toEqual([]);
+      expect(
+        (await asUser(stranger, async (c) => readOverview(c, await listTables(c), 7))).site!.views,
+      ).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    });
+
+    it('skips the admin DDL once applied, and checks admin access once per query', async () => {
+      const { rows } = await query<{ qual: string }>(
+        `select qual from pg_policies where schemaname = 'stepq' and policyname = 'admins_read'`,
+      );
+      expect(rows.length).toBeGreaterThan(10);
+      expect(rows.every((r) => /SELECT stepq\.is_admin\(\)/i.test(r.qual))).toBe(true);
+      const mark = await query<{ d: string }>(
+        `select obj_description('stepq.is_admin()'::regprocedure, 'pg_proc') as d`,
+      );
+      expect(mark.rows[0]!.d).toMatch(/^admin:[0-9a-f]{16}$/);
+      const schemaMark = await query<{ d: string }>(
+        `select obj_description('stepq'::regnamespace, 'pg_namespace') as d`,
+      );
+      expect(schemaMark.rows[0]!.d).toMatch(/^schema:[0-9a-f]{16}$/);
     });
 
     describe('managing admins', () => {

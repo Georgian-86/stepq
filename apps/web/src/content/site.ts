@@ -32,7 +32,7 @@ We only collect what you type into a form on this site:
 - **Fund StepQ:** your name, phone, the amount, and whether to show your name on the backers wall. Payment happens in your own UPI app; we never see your UPI PIN, bank or card details.
 - **Connect with the founder:** your name, email, optional phone, the topic and your message.
 
-To stop abuse we keep a one-way hash of your IP address, never the address itself. We do not use advertising or tracking cookies. Your browser stores whether you already joined the waitlist, so we do not ask you again.
+To stop abuse we keep a one-way hash of your IP address, never the address itself. We do not use advertising or tracking cookies. We count page visits and button or link clicks anonymously (the page, what was clicked, and the site that linked here), with nothing that identifies you, to see which parts of the site are used. Your browser stores whether you already joined the waitlist, so we do not ask you again.
 
 # Why we use it
 

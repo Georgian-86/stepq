@@ -1,9 +1,18 @@
 'use server';
 
+import { firstName } from '@stepq/core';
 import { cookies, headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { addAdmin, asUser, deleteAdmin, isAdmin, updateAdmin } from '@/server/admin/data';
+import { after } from 'next/server';
+import {
+  addAdmin,
+  asUser,
+  deleteAdmin,
+  isAdmin,
+  setStatus,
+  updateAdmin,
+} from '@/server/admin/data';
 import {
   ACCESS_COOKIE,
   REFRESH_COOKIE,
@@ -12,9 +21,12 @@ import {
   signInWithPassword,
   signOut,
 } from '@/server/admin/gotrue';
-import { adminUser } from '@/server/admin/session';
+import { adminUser, forgetToken } from '@/server/admin/session';
 import { ApiError, loggable } from '@/server/errors';
+import { transaction } from '@/server/db';
+import { env } from '@/server/env';
 import { clientIp } from '@/server/http';
+import { deliverPendingMail, queueMail } from '@/server/mail';
 import { enforceRateLimit } from '@/server/rateLimit';
 
 export type LoginState = { error?: string; email?: string };
@@ -46,7 +58,10 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
 export async function logout(): Promise<void> {
   const jar = await cookies();
   const token = jar.get(ACCESS_COOKIE)?.value;
-  if (token) await signOut(token);
+  if (token) {
+    forgetToken(token);
+    await signOut(token);
+  }
   jar.set(ACCESS_COOKIE, '', { ...cookieOptions, maxAge: 0 });
   jar.set(REFRESH_COOKIE, '', { ...cookieOptions, maxAge: 0 });
   redirect('/admin/login');
@@ -122,4 +137,52 @@ export async function deleteAdminAction(form: FormData): Promise<void> {
   });
   revalidatePath('/admin');
   redirect('/admin?t=admins&deleted=1');
+}
+
+export type StatusResult = { error?: string };
+
+/**
+ * Sets a row's status (see `stepq.set_status`, which checks the caller is an admin). The first
+ * time an ambassador is approved they get the same welcome email as the emailed approve link.
+ */
+export async function setStatusAction(
+  table: string,
+  id: string,
+  value: string,
+): Promise<StatusResult> {
+  const user = await adminUser();
+  if (!user) return { error: 'Your session has ended. Sign in again.' };
+  try {
+    const welcome = await asUser(user, async (c) => {
+      const first = await setStatus(c, table, id, value);
+      if (!first || table !== 'ambassador_applications') return null;
+      const { rows } = await c.query<{ name: string; email: string; city: string }>(
+        'select name, email, city from stepq.ambassador_applications where id::text = $1',
+        [id],
+      );
+      return rows[0] ?? null;
+    });
+    if (welcome) {
+      const kitUrl = env.ambassadorKitUrl();
+      await transaction((c) =>
+        queueMail(c, {
+          to: welcome.email,
+          subject: '',
+          template: 'ambassadorApproved',
+          props: {
+            firstName: firstName(welcome.name),
+            city: welcome.city,
+            ...(kitUrl ? { kitUrl } : {}),
+          },
+        }),
+      );
+      after(() => deliverPendingMail().catch((e) => console.error('mail delivery', loggable(e))));
+    }
+  } catch (e) {
+    if (e instanceof ApiError) return { error: e.message };
+    console.error('set status', loggable(e));
+    return { error: 'Could not save. Try again in a minute.' };
+  }
+  revalidatePath('/admin');
+  return {};
 }

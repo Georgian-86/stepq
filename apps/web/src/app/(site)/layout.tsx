@@ -2,6 +2,7 @@ import { Suspense, type ReactNode } from 'react';
 import { Footer } from '@/components/site/Footer';
 import { Nav } from '@/components/site/Nav';
 import { PreviewBanner } from '@/components/site/PreviewBanner';
+import { Tracker } from '@/components/site/Tracker';
 import { FounderModal } from '@/features/founder/FounderModal';
 import { WaitlistModals } from '@/features/waitlist/WaitlistModals';
 import { WaitlistPopup } from '@/features/waitlist/WaitlistPopup';
@@ -22,6 +23,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <Footer />
+      <Tracker />
       {/* W16/W17 on every page (`?modal=founder`, e.g. footer "Collaborate with us"). */}
       <Suspense fallback={null}>
         <FounderModal />

@@ -114,11 +114,26 @@ create table if not exists stepq.chunks (
   primary key (id, idx)
 );
 
+-- 2026-10-27: statuses admins set from the dashboard, and anonymous website clicks.
+alter table stepq.team_applications
+  add column if not exists status text not null default 'pending_review';
+alter table stepq.mail add column if not exists reply_status text;
+
+create table if not exists stepq.site_events (
+  id bigserial primary key,
+  kind text not null,
+  path text not null,
+  label text,
+  referrer text,
+  created_at timestamptz not null default now()
+);
+create index if not exists site_events_created_at on stepq.site_events (created_at);
+
 do $$
 declare t text;
 begin
   foreach t in array array['stats', 'waitlist', 'team_applications', 'ambassador_applications',
-    'backings', 'founder_messages', 'mail', 'rate_limits', 'requests', 'chunks']
+    'backings', 'founder_messages', 'mail', 'rate_limits', 'requests', 'chunks', 'site_events']
   loop
     execute format('alter table stepq.%I enable row level security', t);
   end loop;
