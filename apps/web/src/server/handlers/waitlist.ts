@@ -22,9 +22,9 @@ export async function joinWaitlist(data: unknown, ctx: Ctx): Promise<Api['joinWa
 
   return once('join', input.requestId, async (c) => {
     const inserted = await c.query<{ id: string }>(
-      `insert into stepq.waitlist (name, email, gender, age_group, source)
-       values ($1, $2, $3, $4, $5) on conflict (email) do nothing returning id`,
-      [input.name, input.email, input.gender, input.ageGroup, input.source ?? null],
+      `insert into stepq.waitlist (name, email, gender, age_group, country, source)
+       values ($1, $2, $3, $4, $5, $6) on conflict (email) do nothing returning id`,
+      [input.name, input.email, input.gender, input.ageGroup, input.country, input.source ?? null],
     );
     const id = inserted.rows[0]?.id;
     if (!id) {

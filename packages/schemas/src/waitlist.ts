@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { COUNTRIES } from './countries';
 import { email, honeypot, personName, requestId } from './fields';
 
 export const GENDERS = ['female', 'male', 'non_binary', 'prefer_not'] as const;
@@ -25,6 +26,7 @@ export const waitlistInput = z.object({
   email,
   gender: z.enum(GENDERS, { errorMap: () => ({ message: 'Pick one' }) }),
   ageGroup: z.enum(AGE_GROUPS, { errorMap: () => ({ message: 'Pick one' }) }),
+  country: z.enum(COUNTRIES, { errorMap: () => ({ message: 'Choose your country' }) }),
   source: z.string().max(200).optional(),
   website: honeypot,
   requestId,

@@ -1,12 +1,21 @@
 'use client';
 
-import { AGE_GROUPS, AGE_LABELS, GENDER_LABELS, GENDERS, waitlistInput } from '@stepq/schemas';
+import {
+  AGE_GROUPS,
+  AGE_LABELS,
+  COUNTRIES,
+  COUNTRY_FIRST,
+  GENDER_LABELS,
+  GENDERS,
+  waitlistInput,
+} from '@stepq/schemas';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipGroup } from '@/components/ui/ChipGroup';
 import { ErrorSummary } from '@/components/ui/ErrorSummary';
 import { Field } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
+import { Select } from '@/components/ui/Select';
 import { call } from '@/lib/api';
 import { openModalParam } from '@/lib/useModalParam';
 import { useZodForm } from '@/lib/useZodForm';
@@ -15,7 +24,16 @@ import { useWaitlist } from './WaitlistState';
 
 const genderOptions = GENDERS.map((value) => ({ value, label: GENDER_LABELS[value] }));
 const ageOptions = AGE_GROUPS.map((value) => ({ value, label: AGE_LABELS[value] }));
-const LABELS = { name: 'Full name', email: 'Email', gender: 'Gender', ageGroup: 'Age group' };
+const countryOptions = [COUNTRY_FIRST, ...COUNTRIES.filter((c) => c !== COUNTRY_FIRST)].map(
+  (value) => ({ value, label: value }),
+);
+const LABELS = {
+  name: 'Full name',
+  email: 'Email',
+  gender: 'Gender',
+  ageGroup: 'Age group',
+  country: 'Country',
+};
 
 /** Waitlist form card (W01 `9:126`). A join opens W02 (`?modal=reserve`). */
 export function WaitlistCard() {
@@ -106,6 +124,14 @@ export function WaitlistForm({
         onChange={(v) => form.setValue('ageGroup', v)}
         onBlur={() => form.validateField('ageGroup')}
         error={form.errors.ageGroup}
+      />
+      <Select
+        label="Country"
+        autoComplete="country-name"
+        options={countryOptions}
+        placeholder="Choose your country"
+        {...form.field('country')}
+        error={form.errors.country}
       />
       {/* Honeypot: invisible to people, tempting to bots. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">

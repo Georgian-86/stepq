@@ -8,7 +8,13 @@ import { waitlistInput } from './waitlist';
 const requestId = '3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b';
 const base = { name: 'Riya Sharma', website: '', requestId };
 
-const waitlist = { ...base, email: 'riya@gmail.com', gender: 'female', ageGroup: '18_24' };
+const waitlist = {
+  ...base,
+  email: 'riya@gmail.com',
+  gender: 'female',
+  ageGroup: '18_24',
+  country: 'India',
+};
 const team = {
   ...base,
   email: 'riya@gmail.com',
@@ -60,6 +66,10 @@ describe.each(cases)('%s', (_n, schema, valid) => {
 describe('waitlist', () => {
   it('rejects unknown gender', () => {
     expect(waitlistInput.safeParse({ ...waitlist, gender: 'x' }).success).toBe(false);
+  });
+  it('requires a known country', () => {
+    expect(waitlistInput.safeParse({ ...waitlist, country: undefined }).success).toBe(false);
+    expect(waitlistInput.safeParse({ ...waitlist, country: 'Atlantis' }).success).toBe(false);
   });
 });
 
