@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
     '@stepq/brand',
     '@stepq/emails',
   ],
+  // A view prefetched on hover (admin dashboard) is used for at most 30 s, not Next's default
+  // 5 min, so a click never shows numbers older than that. The public pages are static.
+  experimental: { staleTimes: { static: 30 } },
   // The Postgres driver stays a plain Node require on the server.
   serverExternalPackages: ['pg', 'nodemailer'],
   // Emailed links carry one-time tokens in the query: never send them to other sites.

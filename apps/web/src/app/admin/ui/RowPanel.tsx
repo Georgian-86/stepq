@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { TABLES, columnLabel } from '@/lib/adminTables';
 import type { Cell, Column } from '@/server/admin/data';
 import { CellView } from './Cell';
 import { EscapeLink, StatusButtons } from './client';
+import { NavLink } from './nav';
 
 /** Every field of one record, in a panel over the table (`?row=<id>`). */
 export function RowPanel({
@@ -21,7 +21,7 @@ export function RowPanel({
   const title = get('name') ?? get('to_addr') ?? get('email') ?? 'Record';
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <Link
+      <NavLink
         href={closeHref}
         scroll={false}
         aria-label="Close details"

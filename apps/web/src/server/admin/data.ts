@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { wallName } from '@stepq/core';
 import { TABLES, tableLabel } from '@/lib/adminTables';
-import { transaction, type Client } from '../db';
+import { connect, transaction, type Client } from '../db';
 import { ApiError } from '../errors';
 import type { AuthUser } from './gotrue';
 import { ADMIN_SQL } from './schema';
@@ -44,23 +44,46 @@ function ensureAdminSchema(): Promise<void> {
 /**
  * Runs `fn` as the signed-in user under Postgres RLS: role `authenticated`, with the user's id
  * as the JWT `sub` claim. Rows come back only where the `admins_read` policies allow them.
+ * Opening the transaction, setting the claims and role, and asking `stepq.is_admin()` share one
+ * round trip; with `adminOnly`, `fn` runs only when the user is an admin (otherwise: null).
  */
-export async function asUser<T>(user: AuthUser, fn: (c: Client) => Promise<T>): Promise<T> {
+async function runAs<T>(
+  user: AuthUser,
+  adminOnly: boolean,
+  fn: (c: Client) => Promise<T>,
+): Promise<T | null> {
   await ensureAdminSchema();
-  return transaction(async (c) => {
-    await c.query(`select set_config('request.jwt.claims', $1, true)`, [
-      JSON.stringify({ sub: user.id, email: user.email, role: 'authenticated' }),
-    ]);
-    await c.query('set local role authenticated');
-    return fn(c);
-  });
+  const claims = JSON.stringify({ sub: user.id, email: user.email, role: 'authenticated' });
+  const c = await connect();
+  try {
+    const results = (await c.query(
+      `begin;
+       select set_config('request.jwt.claims', ${lit(claims)}, true),
+              set_config('role', 'authenticated', true);
+       select stepq.is_admin() as ok`,
+    )) as unknown as { rows: { ok?: boolean }[] }[];
+    const result = !adminOnly || results[2]!.rows[0]!.ok ? await fn(c) : null;
+    await c.query('commit');
+    return result;
+  } catch (e) {
+    await c.query('rollback').catch(() => {});
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+export async function asUser<T>(user: AuthUser, fn: (c: Client) => Promise<T>): Promise<T> {
+  return (await runAs(user, false, fn)) as T;
+}
+
+/** Like `asUser`, for reads only admins may make: null when the user is not an admin. */
+export function asAdmin<T>(user: AuthUser, fn: (c: Client) => Promise<T>): Promise<T | null> {
+  return runAs(user, true, fn);
 }
 
 export async function isAdmin(user: AuthUser): Promise<boolean> {
-  return asUser(user, async (c) => {
-    const { rows } = await c.query<{ ok: boolean }>('select stepq.is_admin() as ok');
-    return rows[0]!.ok;
-  });
+  return (await asAdmin(user, async () => true)) ?? false;
 }
 
 const ORDER = Object.keys(TABLES);
@@ -98,8 +121,17 @@ export async function listTables(c: Client): Promise<TableInfo[]> {
 
 const ident = (name: string) => `"${name.replace(/"/g, '""')}"`;
 
-/** A table's columns, from pg_catalog (information_schema is slow to query). */
+const columnMemo = new WeakMap<Client, Map<string, Column[]>>();
+
+/**
+ * A table's columns, from pg_catalog (information_schema is slow to query). Asked once per
+ * transaction: the table, its facets and a row's details share the answer.
+ */
 export async function columnsOf(c: Client, table: string): Promise<Column[]> {
+  let memo = columnMemo.get(c);
+  if (!memo) columnMemo.set(c, (memo = new Map()));
+  const hit = memo.get(table);
+  if (hit) return hit;
   const { rows } = await c.query<Column>(
     `select a.attname as name, format_type(a.atttypid, null) as type
      from pg_attribute a
@@ -111,6 +143,7 @@ export async function columnsOf(c: Client, table: string): Promise<Column[]> {
     [table],
   );
   if (!rows.length) throw new ApiError('not-found', 'No such table.');
+  memo.set(table, rows);
   return rows;
 }
 
@@ -240,6 +273,12 @@ export async function readTable(
   };
 }
 
+/** Every row of a table that RLS lets the user see. */
+export async function countRows(c: Client, table: string): Promise<number> {
+  const { rows } = await c.query<{ n: string }>(`select count(*) as n from stepq.${ident(table)}`);
+  return Number(rows[0]!.n);
+}
+
 /** One row by its id (`id` or `user_id`), every column, for the details panel. */
 export async function readRow(
   c: Client,
@@ -271,18 +310,30 @@ export async function readFacets(
   q: RowQuery = {},
 ): Promise<Record<string, FacetValue[]>> {
   const columns = await columnsOf(c, table);
-  const out: Record<string, FacetValue[]> = {};
-  for (const name of names) {
+  const wanted = names.filter((name) => {
     const col = columns.find((x) => x.name === name);
-    if (!col || isBinary(col)) continue;
+    return col && !isBinary(col);
+  });
+  if (!wanted.length) return {};
+  const params: unknown[] = [];
+  const parts = wanted.map((name) => {
     const others = Object.fromEntries(Object.entries(q.filters ?? {}).filter(([k]) => k !== name));
-    const { where, params } = whereOf(columns, { ...q, filters: others });
-    const { rows } = await c.query<{ value: string | null; n: string }>(
-      `select ${ident(name)}::text as value, count(*) as n from stepq.${ident(table)} ${where}
-       group by 1 order by 2 desc, 1 limit 30`,
-      params,
+    const { where } = whereOf(columns, { ...q, filters: others }, params);
+    return `(select ${lit(name)} as name, ${ident(name)}::text as value, count(*) as n
+       from stepq.${ident(table)} ${where} group by 2 order by 3 desc, 2 limit 30)`;
+  });
+  const { rows } = await c.query<{ name: string; value: string | null; n: string }>(
+    parts.join(' union all '),
+    params,
+  );
+  const out: Record<string, FacetValue[]> = Object.fromEntries(wanted.map((n) => [n, []]));
+  for (const r of rows) out[r.name]!.push({ value: r.value, count: Number(r.n) });
+  for (const values of Object.values(out)) {
+    values.sort(
+      (a, b) =>
+        b.count - a.count ||
+        (a.value === null ? 1 : b.value === null ? -1 : a.value < b.value ? -1 : 1),
     );
-    out[name] = rows.map((r) => ({ value: r.value, count: Number(r.n) }));
   }
   return out;
 }
@@ -449,22 +500,39 @@ export type Overview = {
   daily: Record<string, number[]>;
   /** Rows per status, for tables with a status an admin sets. */
   statuses: Record<string, FacetValue[]>;
-  site: {
-    views: number[];
-    clicks: number[];
-    pages: Ranked[];
-    clicked: Ranked[];
-    referrers: Ranked[];
-  } | null;
+};
+export type SiteStats = {
+  views: number[];
+  clicks: number[];
+  pages: Ranked[];
+  clicked: Ranked[];
+  referrers: Ranked[];
 };
 
-/** Everything the Stats page draws, for the last `range` days (India time). */
+const INDIA_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' });
+const spanOf = (range: number) => Math.min(365, Math.max(7, Math.floor(range)));
+
+/** The last `range` days, oldest first (YYYY-MM-DD, India time). */
+export function daysOf(range: number, now = new Date()): string[] {
+  const today = new Date(`${INDIA_DAY.format(now)}T00:00:00Z`).getTime();
+  const span = spanOf(range);
+  return Array.from({ length: span }, (_, i) =>
+    new Date(today - (span - 1 - i) * 86_400_000).toISOString().slice(0, 10),
+  );
+}
+
+const since = `now() - make_interval(days => $1::int + 1)`;
+const dayOf = `to_char((created_at at time zone 'Asia/Kolkata')::date, 'YYYY-MM-DD')`;
+
+/** Everything the Stats page draws about records, for the last `range` days (India time). */
 export async function readOverview(
   c: Client,
   tables: TableInfo[],
   range: number,
 ): Promise<Overview> {
-  const span = Math.min(365, Math.max(7, Math.floor(range)));
+  const span = spanOf(range);
+  const days = daysOf(range);
+  const index = new Map(days.map((d, i) => [d, i]));
   const visible = new Set(tables.map((t) => t.name));
   const { rows: withDates } = await c.query<{ name: string }>(
     `select t.relname as name from pg_class t join pg_namespace n on n.oid = t.relnamespace
@@ -473,20 +541,7 @@ export async function readOverview(
   );
   const dated = withDates
     .map((r) => r.name)
-    .filter((name) => visible.has(name) && (!TABLES[name]?.internal || name === 'site_events'));
-
-  const { rows: dayRows } = await c.query<{ day: string }>(
-    `select to_char(d, 'YYYY-MM-DD') as day from generate_series(
-       (now() at time zone 'Asia/Kolkata')::date - ($1::int - 1),
-       (now() at time zone 'Asia/Kolkata')::date, interval '1 day') d order by d`,
-    [span],
-  );
-  const days = dayRows.map((r) => r.day);
-  const index = new Map(days.map((d, i) => [d, i]));
-  const since = `now() - make_interval(days => $1::int + 1)`;
-  const perDay = (from: string) =>
-    `select to_char((created_at at time zone 'Asia/Kolkata')::date, 'YYYY-MM-DD') as day,
-       count(*) as n from ${from} and created_at >= ${since} group by 1`;
+    .filter((name) => visible.has(name) && !TABLES[name]?.internal);
 
   const daily: Record<string, number[]> = {};
   if (dated.length) {
@@ -494,7 +549,8 @@ export async function readOverview(
       dated
         .map(
           (name) =>
-            `select ${lit(name)} as name, x.* from (${perDay(`stepq.${ident(name)} where true`)}) x`,
+            `select ${lit(name)} as name, ${dayOf} as day, count(*) as n
+             from stepq.${ident(name)} where created_at >= ${since} group by 2`,
         )
         .join(' union all '),
       [span],
@@ -506,45 +562,77 @@ export async function readOverview(
     }
   }
 
+  const statusTables = Object.entries(TABLES).filter(
+    ([name, def]) => def.status && visible.has(name),
+  );
   const statuses: Record<string, FacetValue[]> = {};
-  for (const [name, def] of Object.entries(TABLES)) {
-    if (!def.status || !visible.has(name)) continue;
-    const facets = await readFacets(c, name, [def.status.column]);
-    statuses[name] = facets[def.status.column] ?? [];
+  if (statusTables.length) {
+    const { rows } = await c.query<{ name: string; value: string | null; n: string }>(
+      statusTables
+        .map(
+          ([name, def]) =>
+            `select ${lit(name)} as name, ${ident(def.status!.column)}::text as value,
+               count(*) as n from stepq.${ident(name)} group by 2`,
+        )
+        .join(' union all '),
+    );
+    for (const [name] of statusTables) statuses[name] = [];
+    for (const r of rows) statuses[r.name]!.push({ value: r.value, count: Number(r.n) });
+    for (const values of Object.values(statuses)) values.sort((a, b) => b.count - a.count);
   }
+  return { days, daily, statuses };
+}
 
-  let site: Overview['site'] = null;
-  if (visible.has('site_events')) {
-    const series = async (kind: string) => {
-      const out = days.map(() => 0);
-      const { rows } = await c.query<{ day: string; n: string }>(
-        perDay(`stepq.site_events where kind = ${lit(kind)}`),
-        [span],
-      );
-      for (const r of rows) {
-        const i = index.get(r.day);
-        if (i !== undefined) out[i] = Number(r.n);
-      }
-      return out;
-    };
-    const top = async (col: string, kind: string) => {
-      const { rows } = await c.query<{ label: string; n: string }>(
-        `select ${ident(col)} as label, count(*) as n from stepq.site_events
-         where kind = ${lit(kind)} and ${ident(col)} is not null and created_at >= ${since}
-         group by 1 order by 2 desc, 1 limit 8`,
-        [span],
-      );
-      return rows.map((r) => ({ label: r.label, count: Number(r.n) }));
-    };
-    site = {
-      views: await series('view'),
-      clicks: await series('click'),
-      pages: await top('path', 'view'),
-      clicked: await top('label', 'click'),
-      referrers: await top('referrer', 'view'),
-    };
+/**
+ * Website visits and clicks for the Stats page (null when site_events cannot be read). The
+ * largest table, so it is read in two queries of its own, which the page runs alongside the
+ * rest and streams in.
+ */
+export async function readSite(c: Client, range: number): Promise<SiteStats | null> {
+  const { rows: ok } = await c.query<{ ok: boolean }>(
+    `select coalesce(has_table_privilege(to_regclass('stepq.site_events'), 'select'), false) as ok`,
+  );
+  if (!ok[0]!.ok) return null;
+  const span = spanOf(range);
+  const days = daysOf(range);
+  const index = new Map(days.map((d, i) => [d, i]));
+  const views = days.map(() => 0);
+  const clicks = days.map(() => 0);
+  const { rows } = await c.query<{ day: string; views: string; clicks: string }>(
+    `select ${dayOf} as day, count(*) filter (where kind = 'view') as views,
+       count(*) filter (where kind = 'click') as clicks
+     from stepq.site_events where created_at >= ${since} group by 1`,
+    [span],
+  );
+  for (const r of rows) {
+    const i = index.get(r.day);
+    if (i === undefined) continue;
+    views[i] = Number(r.views);
+    clicks[i] = Number(r.clicks);
   }
-  return { days, daily, statuses, site };
+  const top = (list: string, col: string, kind: string) =>
+    `(select ${lit(list)} as list, ${ident(col)} as label, count(*) as n from e
+      where kind = ${lit(kind)} and ${ident(col)} is not null group by 2 order by 3 desc, 2 limit 8)`;
+  const { rows: ranked } = await c.query<{ list: string; label: string; n: string }>(
+    `with e as materialized (
+       select kind, path, label, referrer from stepq.site_events where created_at >= ${since}
+     )
+     ${top('pages', 'path', 'view')} union all ${top('clicked', 'label', 'click')}
+     union all ${top('referrers', 'referrer', 'view')}`,
+    [span],
+  );
+  const list = (name: string) =>
+    ranked
+      .filter((r) => r.list === name)
+      .map((r) => ({ label: r.label, count: Number(r.n) }))
+      .sort((a, b) => b.count - a.count || (a.label < b.label ? -1 : 1));
+  return {
+    views,
+    clicks,
+    pages: list('pages'),
+    clicked: list('clicked'),
+    referrers: list('referrers'),
+  };
 }
 
 const lit = (s: string) => `'${s.replace(/'/g, "''")}'`;

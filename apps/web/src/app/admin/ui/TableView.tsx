@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { TABLES, TONE_DOT, columnLabel, prettyValue } from '@/lib/adminTables';
 import {
@@ -11,7 +10,8 @@ import {
 import { ALL, adminHref, first, listParams, type Params } from '../params';
 import { AdminIcon } from './AdminIcon';
 import { CellView } from './Cell';
-import { AutoForm, Popover, StatusSelect } from './client';
+import { Popover, StatusSelect } from './client';
+import { NavForm, NavLink } from './nav';
 
 type Props = {
   params: Params;
@@ -99,7 +99,7 @@ export function TableView({ params, table, data, shown, facets, page, selfId, ch
       )}
 
       <div className="mb-3 flex flex-wrap items-start gap-2">
-        <AutoForm action="/admin" className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <NavForm action="/admin" auto className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <input type="hidden" name="t" value={table.name} />
           {Object.entries(base).map(([k, v]) =>
             ['sort', 'dir', 'cols', statusKey].includes(k) && v !== undefined
@@ -179,14 +179,14 @@ export function TableView({ params, table, data, shown, facets, page, selfId, ch
             Apply
           </button>
           {narrowed && (
-            <Link
+            <NavLink
               href={adminHref({ t: table.name, sort: base.sort, dir: base.dir, cols: base.cols })}
               className="type-web-small-strong px-2 text-tomato-text hover:underline"
             >
               Clear filters
-            </Link>
+            </NavLink>
           )}
-        </AutoForm>
+        </NavForm>
         <ColumnsMenu params={base} table={table} columns={data.columns} shown={shown} />
       </div>
 
@@ -210,7 +210,7 @@ export function TableView({ params, table, data, shown, facets, page, selfId, ch
                       {col.type === 'bytea' ? (
                         columnLabel(col.name)
                       ) : (
-                        <Link
+                        <NavLink
                           href={adminHref(base, { sort: col.name, dir: next, p: undefined })}
                           scroll={false}
                           className={`inline-flex items-center gap-1 hover:text-ink ${on ? 'text-ink' : ''}`}
@@ -220,7 +220,7 @@ export function TableView({ params, table, data, shown, facets, page, selfId, ch
                             name={on ? (dir === 'asc' ? 'sortUp' : 'sortDown') : 'sort'}
                             className={`size-3.5 ${on ? '' : 'opacity-40'}`}
                           />
-                        </Link>
+                        </NavLink>
                       )}
                     </th>
                   );
@@ -277,21 +277,21 @@ export function TableView({ params, table, data, shown, facets, page, selfId, ch
                     <td className="sticky right-0 bg-white shadow-[-10px_0_10px_-10px_rgb(13_41_26/0.25)] px-2 py-1.5 text-right group-hover:bg-[#f1f8f3]">
                       {id &&
                         (table.name === 'admins' ? (
-                          <Link
+                          <NavLink
                             href={adminHref({ t: 'admins', edit: id })}
                             className="type-web-small-strong inline-flex min-h-[32px] items-center whitespace-nowrap px-2 text-deep hover:underline"
                           >
                             {id === selfId ? 'Edit (you)' : 'Edit'}
-                          </Link>
+                          </NavLink>
                         ) : (
-                          <Link
+                          <NavLink
                             href={adminHref(params, { row: id })}
                             scroll={false}
                             className="type-web-small-strong inline-flex min-h-[32px] items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-deep hover:bg-leaf-soft"
                           >
                             View
                             <span className="sr-only"> {name}</span>
-                          </Link>
+                          </NavLink>
                         ))}
                     </td>
                   </tr>
@@ -331,9 +331,9 @@ function PageLink({ href, label }: { href: string | null; label: string }) {
   const cls =
     'type-web-small-strong inline-flex min-h-[36px] items-center rounded-[10px] px-3 edge';
   return href ? (
-    <Link href={href} className={`${cls} bg-white text-deep hover:bg-page`}>
+    <NavLink href={href} className={`${cls} bg-white text-deep hover:bg-page`}>
       {label}
-    </Link>
+    </NavLink>
   ) : (
     <span aria-disabled="true" className={`${cls} text-muted/60`}>
       {label}
@@ -355,7 +355,7 @@ function StatusTab({
   dot?: string;
 }) {
   return (
-    <Link
+    <NavLink
       href={href}
       scroll={false}
       aria-current={on ? 'page' : undefined}
@@ -366,7 +366,7 @@ function StatusTab({
       {dot && <span aria-hidden="true" className={`size-2 rounded-full ${dot}`} />}
       {label}
       <span className={`tabular-nums ${on ? 'text-white/75' : 'text-muted'}`}>{count}</span>
-    </Link>
+    </NavLink>
   );
 }
 
@@ -395,7 +395,7 @@ function ColumnsMenu({
         </>
       }
     >
-      <form action="/admin" className="flex flex-col gap-3">
+      <NavForm action="/admin" className="flex flex-col gap-3">
         {Object.entries(params).map(([k, v]) =>
           k !== 'cols' && v !== undefined
             ? [v].flat().map((x, i) => <input key={`${k}${i}`} type="hidden" name={k} value={x} />)
@@ -422,12 +422,12 @@ function ColumnsMenu({
           </div>
         </fieldset>
         <div className="flex items-center justify-between gap-2">
-          <Link
+          <NavLink
             href={adminHref(params, { cols: undefined })}
             className="type-web-small-strong text-muted hover:text-ink"
           >
             {defaults ? 'Reset' : 'Show all'}
-          </Link>
+          </NavLink>
           <button
             type="submit"
             className="type-web-small-strong min-h-[36px] rounded-full bg-deep px-4 text-white"
@@ -435,7 +435,7 @@ function ColumnsMenu({
             Apply
           </button>
         </div>
-      </form>
+      </NavForm>
     </Popover>
   );
 }
