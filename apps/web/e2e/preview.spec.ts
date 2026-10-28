@@ -35,7 +35,8 @@ test('join → W02 → reserve a username → W03, with a zero live count', asyn
   await form.getByLabel('Email').fill(' Riya@Example.com ');
   await form.getByRole('radio', { name: 'Female' }).click();
   await form.getByRole('radio', { name: '18–24' }).click();
-  await form.getByLabel('Country').selectOption('India');
+  await form.getByRole('combobox', { name: 'Country' }).fill('India');
+  await form.getByRole('option', { name: 'India', exact: true }).click();
   await form.getByRole('button', { name: 'Join the waitlist' }).click();
 
   const reserve = w02(page);
@@ -57,7 +58,8 @@ test('an invalid email still shows the field error', async ({ page }) => {
   await form.getByLabel('Email').fill('riya@');
   await form.getByRole('radio', { name: 'Female' }).click();
   await form.getByRole('radio', { name: '18–24' }).click();
-  await form.getByLabel('Country').selectOption('India');
+  await form.getByRole('combobox', { name: 'Country' }).fill('India');
+  await form.getByRole('option', { name: 'India', exact: true }).click();
   await form.getByRole('button', { name: 'Join the waitlist' }).click();
   await expect(form.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true');
   await expect(w02(page)).toHaveCount(0);
@@ -100,7 +102,8 @@ test('the waitlist pop-up opens after 5 s on any page and joins into W02', async
   await popup.getByLabel('Email').fill('riya@example.com');
   await popup.getByRole('radio', { name: 'Female' }).click();
   await popup.getByRole('radio', { name: '18–24' }).click();
-  await popup.getByLabel('Country').selectOption('India');
+  await popup.getByRole('combobox', { name: 'Country' }).fill('India');
+  await popup.getByRole('option', { name: 'India', exact: true }).click();
   await popup.getByRole('button', { name: 'Join the waitlist' }).click();
   await expect(w02(page)).toBeVisible();
   await expect(popup).toHaveCount(0);

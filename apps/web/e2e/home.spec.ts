@@ -18,7 +18,8 @@ async function join(page: Page, name: string, email: string) {
   await form.getByLabel('Email').fill(email);
   await form.getByRole('radio', { name: 'Female' }).click();
   await form.getByRole('radio', { name: '18–24' }).click();
-  await form.getByLabel('Country').selectOption('India');
+  await form.getByRole('combobox', { name: 'Country' }).fill('India');
+  await form.getByRole('option', { name: 'India', exact: true }).click();
   await form.getByRole('button', { name: 'Join the waitlist' }).click();
 }
 
@@ -146,7 +147,10 @@ test('an empty submit focuses the error summary and marks the fields', async ({ 
     'aria-invalid',
     'true',
   );
-  await expect(form.getByLabel('Country')).toHaveAttribute('aria-invalid', 'true');
+  await expect(form.getByRole('combobox', { name: 'Country' })).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
   // Field ids are unique on the page (the founder modal has its own name/email).
   expect(await page.locator('[id="name"], [id="email"]').count()).toBe(0);
 });

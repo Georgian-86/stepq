@@ -1,21 +1,13 @@
 'use client';
 
-import {
-  AGE_GROUPS,
-  AGE_LABELS,
-  COUNTRIES,
-  COUNTRY_FIRST,
-  GENDER_LABELS,
-  GENDERS,
-  waitlistInput,
-} from '@stepq/schemas';
+import { AGE_GROUPS, AGE_LABELS, GENDER_LABELS, GENDERS, waitlistInput } from '@stepq/schemas';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipGroup } from '@/components/ui/ChipGroup';
+import { CountryPicker } from '@/components/ui/CountryPicker';
 import { ErrorSummary } from '@/components/ui/ErrorSummary';
 import { Field } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
-import { Select } from '@/components/ui/Select';
 import { call } from '@/lib/api';
 import { openModalParam } from '@/lib/useModalParam';
 import { useZodForm } from '@/lib/useZodForm';
@@ -24,9 +16,6 @@ import { useWaitlist } from './WaitlistState';
 
 const genderOptions = GENDERS.map((value) => ({ value, label: GENDER_LABELS[value] }));
 const ageOptions = AGE_GROUPS.map((value) => ({ value, label: AGE_LABELS[value] }));
-const countryOptions = [COUNTRY_FIRST, ...COUNTRIES.filter((c) => c !== COUNTRY_FIRST)].map(
-  (value) => ({ value, label: value }),
-);
 const LABELS = {
   name: 'Full name',
   email: 'Email',
@@ -125,12 +114,12 @@ export function WaitlistForm({
         onBlur={() => form.validateField('ageGroup')}
         error={form.errors.ageGroup}
       />
-      <Select
+      <CountryPicker
+        id={form.fieldId('country')}
         label="Country"
-        autoComplete="country-name"
-        options={countryOptions}
-        placeholder="Choose your country"
-        {...form.field('country')}
+        value={form.values.country as string | undefined}
+        onChange={(v) => form.setValue('country', v)}
+        onBlur={() => form.validateField('country')}
         error={form.errors.country}
       />
       {/* Honeypot: invisible to people, tempting to bots. */}
