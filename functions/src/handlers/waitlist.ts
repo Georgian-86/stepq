@@ -54,6 +54,7 @@ export async function joinWaitlistHandler(req: Req): Promise<Api['joinWaitlist']
       email: input.email,
       gender: input.gender,
       ageGroup: input.ageGroup,
+      country: input.country,
       ...(input.source ? { source: input.source } : {}),
       position,
       createdAt: FieldValue.serverTimestamp(),
