@@ -18,6 +18,8 @@ async function join(page: Page, name: string, email: string) {
   await form.getByLabel('Email').fill(email);
   await form.getByRole('radio', { name: 'Female' }).click();
   await form.getByRole('radio', { name: '18–24' }).click();
+  await form.getByRole('combobox', { name: 'Country' }).fill('India');
+  await form.getByRole('option', { name: 'India', exact: true }).click();
   await form.getByRole('button', { name: 'Join the waitlist' }).click();
 }
 
@@ -134,7 +136,7 @@ test('an empty submit focuses the error summary and marks the fields', async ({ 
 
   const summary = form.getByRole('alert');
   await expect(summary).toBeFocused();
-  await expect(summary.getByRole('link')).toHaveCount(4);
+  await expect(summary.getByRole('link')).toHaveCount(5);
   await expect(form.getByLabel('Full name')).toHaveAttribute('aria-invalid', 'true');
   await expect(form.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true');
   await expect(form.getByRole('radiogroup', { name: 'Gender' })).toHaveAttribute(
@@ -142,6 +144,10 @@ test('an empty submit focuses the error summary and marks the fields', async ({ 
     'true',
   );
   await expect(form.getByRole('radiogroup', { name: 'Age group' })).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
+  await expect(form.getByRole('combobox', { name: 'Country' })).toHaveAttribute(
     'aria-invalid',
     'true',
   );

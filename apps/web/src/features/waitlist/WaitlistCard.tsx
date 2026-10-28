@@ -4,6 +4,7 @@ import { AGE_GROUPS, AGE_LABELS, GENDER_LABELS, GENDERS, waitlistInput } from '@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipGroup } from '@/components/ui/ChipGroup';
+import { CountryPicker } from '@/components/ui/CountryPicker';
 import { ErrorSummary } from '@/components/ui/ErrorSummary';
 import { Field } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
@@ -15,7 +16,13 @@ import { useWaitlist } from './WaitlistState';
 
 const genderOptions = GENDERS.map((value) => ({ value, label: GENDER_LABELS[value] }));
 const ageOptions = AGE_GROUPS.map((value) => ({ value, label: AGE_LABELS[value] }));
-const LABELS = { name: 'Full name', email: 'Email', gender: 'Gender', ageGroup: 'Age group' };
+const LABELS = {
+  name: 'Full name',
+  email: 'Email',
+  gender: 'Gender',
+  ageGroup: 'Age group',
+  country: 'Country',
+};
 
 /** Waitlist form card (W01 `9:126`). A join opens W02 (`?modal=reserve`). */
 export function WaitlistCard() {
@@ -106,6 +113,14 @@ export function WaitlistForm({
         onChange={(v) => form.setValue('ageGroup', v)}
         onBlur={() => form.validateField('ageGroup')}
         error={form.errors.ageGroup}
+      />
+      <CountryPicker
+        id={form.fieldId('country')}
+        label="Country"
+        value={form.values.country as string | undefined}
+        onChange={(v) => form.setValue('country', v)}
+        onBlur={() => form.validateField('country')}
+        error={form.errors.country}
       />
       {/* Honeypot: invisible to people, tempting to bots. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">

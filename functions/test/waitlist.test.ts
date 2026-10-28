@@ -21,6 +21,7 @@ const joinData = (over: Record<string, unknown> = {}) => ({
   email: 'riya@gmail.com',
   gender: 'female',
   ageGroup: '25_34',
+  country: 'India',
   website: '',
   requestId: randomUUID(),
   ...over,

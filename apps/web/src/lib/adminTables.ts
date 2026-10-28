@@ -40,10 +40,11 @@ export const TABLES: Record<string, TableDef> = {
       'username',
       'gender',
       'age_group',
+      'country',
       'source',
       'created_at',
     ],
-    filters: ['gender', 'age_group', 'source'],
+    filters: ['gender', 'age_group', 'country', 'source'],
   },
   founder_messages: {
     label: 'Colab reqs',

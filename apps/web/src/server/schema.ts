@@ -129,6 +129,9 @@ create table if not exists stepq.site_events (
 );
 create index if not exists site_events_created_at on stepq.site_events (created_at);
 
+-- 2026-10-28: country asked on the waitlist form. Nullable: people who joined before have none.
+alter table stepq.waitlist add column if not exists country text;
+
 do $$
 declare t text;
 begin

@@ -9,6 +9,7 @@ const join = (email: string) => ({
   email,
   gender: 'female' as const,
   ageGroup: '18_24' as const,
+  country: 'India' as const,
   requestId,
   website: '' as const,
 });

@@ -51,6 +51,8 @@ async function joinWaitlist(page: Page) {
   await card.getByLabel('Email').fill('riya@example.com');
   await card.getByRole('radio', { name: 'Female' }).click();
   await card.getByRole('radio', { name: '18–24' }).click();
+  await card.getByRole('combobox', { name: 'Country' }).fill('India');
+  await card.getByRole('option', { name: 'India', exact: true }).click();
   await card.getByRole('button', { name: 'Join the waitlist' }).click();
   return page.getByRole('dialog', { name: "You're on the list!" });
 }
@@ -207,6 +209,13 @@ test.describe('keyboard only', () => {
       'aria-checked',
       'true',
     );
+    await page.keyboard.press('Tab');
+    // Country: type to filter, arrows to move, Enter to pick.
+    await expect(card.getByRole('combobox', { name: 'Country' })).toBeFocused();
+    await page.keyboard.type('united');
+    await page.keyboard.press('ArrowDown'); // United Kingdom
+    await page.keyboard.press('Enter');
+    await expect(card.getByRole('combobox', { name: 'Country' })).toHaveValue('United Kingdom');
     await page.keyboard.press('Tab');
     await expect(card.getByRole('button', { name: 'Join the waitlist' })).toBeFocused();
     await page.keyboard.press('Enter');

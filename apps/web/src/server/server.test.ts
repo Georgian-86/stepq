@@ -87,6 +87,7 @@ const join = (over: Record<string, unknown> = {}) => ({
   email: 'riya@gmail.com',
   gender: 'female',
   ageGroup: '25_34',
+  country: 'India',
   website: '',
   requestId: randomUUID(),
   ...over,
@@ -164,6 +165,11 @@ describe.skipIf(!url)('API on Postgres', () => {
       const b = await ok('joinWaitlist', join({ email: 'sam@gmail.com' }));
       expect(b).toMatchObject({ status: 'joined', position: 2 });
       expect(await (await statsGET()).json()).toEqual({ waitlistCount: 2 });
+      const { rows } = await query<{ country: string }>(
+        'select country from stepq.waitlist where email = $1',
+        ['riya@gmail.com'],
+      );
+      expect(rows[0]!.country).toBe('India');
     });
 
     it('concurrent joins get unique, gap-free positions', async () => {

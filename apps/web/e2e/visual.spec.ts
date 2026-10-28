@@ -83,6 +83,8 @@ async function fillWaitlist(page: Page) {
   await card.getByLabel('Full name').fill('Riya Sharma');
   await card.getByRole('radio', { name: 'Female' }).click();
   await card.getByRole('radio', { name: '18–24' }).click();
+  await card.getByRole('combobox', { name: 'Country' }).fill('India');
+  await card.getByRole('option', { name: 'India', exact: true }).click();
   await card.getByLabel('Email').fill(EMAIL);
 }
 
@@ -206,6 +208,7 @@ async function expectW01(page: Page) {
     h(card, 'Join the waitlist', 2),
     card.getByLabel('Full name'),
     card.getByLabel('Email'),
+    card.getByRole('combobox', { name: 'Country' }),
     card.getByRole('button', { name: 'Join the waitlist' }),
     card.getByText('We only email you about StepQ. No spam, ever.'),
   );
