@@ -33,15 +33,19 @@ export function forgetToken(token: string): void {
 }
 
 /**
- * Who is signed in to /admin: the access token (kept fresh by `middleware.ts`) is checked with
- * Supabase Auth, then `stepq.is_admin()` decides. Data reads are still filtered by RLS. Cached
- * per request.
+ * The Supabase Auth user of this request's access token (kept fresh by `middleware.ts`), or
+ * null. Says nothing about admin access: that is `stepq.is_admin()`, asked in the same
+ * transaction as the data (`asAdmin`), and RLS filters every read. Cached per request.
  */
-export const adminState = cache(async (): Promise<AdminState> => {
-  if (!authConfigured()) return { kind: 'signed-out' };
+export const signedInUser = cache(async (): Promise<AuthUser | null> => {
+  if (!authConfigured()) return null;
   const token = (await cookies()).get(ACCESS_COOKIE)?.value;
-  if (!token) return { kind: 'signed-out' };
-  const user = await userFor(token);
+  return token ? userFor(token) : null;
+});
+
+/** Who is signed in to /admin, and whether `stepq.is_admin()` says they are an admin. */
+export const adminState = cache(async (): Promise<AdminState> => {
+  const user = await signedInUser();
   if (!user) return { kind: 'signed-out' };
   return (await isAdmin(user)) ? { kind: 'admin', user } : { kind: 'not-admin', user };
 });

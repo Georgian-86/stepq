@@ -27,6 +27,7 @@ const { GET: backersGET } = await import('../app/api/public/backers/route');
 const { POST: chunkPOST } = await import('../app/api/chunk/route');
 const {
   addAdmin,
+  asAdmin,
   asUser,
   deleteAdmin,
   isAdmin,
@@ -34,6 +35,7 @@ const {
   readAdmin,
   readFacets,
   readOverview,
+  readSite,
   readRow,
   readTable,
   readResume,
@@ -545,6 +547,14 @@ describe.skipIf(!url)('API on Postgres', () => {
     it('only users listed in stepq.admins are admins', async () => {
       expect(await isAdmin(admin)).toBe(true);
       expect(await isAdmin(stranger)).toBe(false);
+      let ran = false;
+      const read = async () => {
+        ran = true;
+        return 'rows';
+      };
+      expect(await asAdmin(stranger, read)).toBeNull();
+      expect(ran).toBe(false);
+      expect(await asAdmin(admin, read)).toBe('rows');
     });
 
     it('a signed-in non-admin sees no rows in any table', async () => {
@@ -641,6 +651,13 @@ describe.skipIf(!url)('API on Postgres', () => {
           { value: 'female', count: 2 },
           { value: 'male', count: 1 },
         ]);
+        // Several menus in one query: each counts the rows the other filters leave.
+        const both = await readFacets(c, 'waitlist', ['gender', 'age_group', 'nope'], {
+          filters: { gender: 'male' },
+        });
+        expect(Object.keys(both)).toEqual(['gender', 'age_group']);
+        expect(both.gender).toEqual(facets.gender);
+        expect(both.age_group!.reduce((n, f) => n + f.count, 0)).toBe(1);
         const row = await readRow(c, 'waitlist', women.ids[0]!);
         expect(row!.values).toContain('ananya@gmail.com');
       });
@@ -771,13 +788,19 @@ describe.skipIf(!url)('API on Postgres', () => {
       expect(overview.daily.waitlist!.at(-1)).toBe(1);
       expect(overview.daily.founder_messages).toEqual([0, 0, 0, 0, 0, 0, 0]);
       expect(overview.daily.rate_limits).toBeUndefined();
-      expect(overview.site!.views.at(-1)).toBe(2);
-      expect(overview.site!.clicked).toEqual([{ label: 'Join the waitlist', count: 1 }]);
-      expect(overview.site!.referrers).toEqual([{ label: 'www.instagram.com', count: 1 }]);
       expect(overview.statuses.team_applications).toEqual([]);
-      expect(
-        (await asUser(stranger, async (c) => readOverview(c, await listTables(c), 7))).site!.views,
-      ).toEqual([0, 0, 0, 0, 0, 0, 0]);
+      const site = (await asUser(admin, (c) => readSite(c, 7)))!;
+      expect(site.views).toHaveLength(7);
+      expect(site.views.at(-1)).toBe(2);
+      expect(site.clicks.at(-1)).toBe(1);
+      expect(site.pages).toEqual([
+        { label: '/', count: 1 },
+        { label: '/fund', count: 1 },
+      ]);
+      expect(site.clicked).toEqual([{ label: 'Join the waitlist', count: 1 }]);
+      expect(site.referrers).toEqual([{ label: 'www.instagram.com', count: 1 }]);
+      expect((await asUser(stranger, (c) => readSite(c, 7)))!.views).toEqual([0, 0, 0, 0, 0, 0, 0]);
+      expect(await asAdmin(stranger, (c) => readSite(c, 7))).toBeNull();
     });
 
     it('skips the admin DDL once applied, and checks admin access once per query', async () => {

@@ -47,7 +47,10 @@ function getPool(): pg.Pool {
     ...parseDatabaseUrl(url),
     // Serverless: few connections per instance; the Supabase pooler multiplexes the rest.
     max: 3,
-    idleTimeoutMillis: 10_000,
+    // Kept a while between requests, so a click after reading a page for a minute does not pay
+    // for a new TLS connection and sign-in to the pooler.
+    idleTimeoutMillis: 120_000,
+    keepAlive: true,
   });
   pool.on('error', () => {}); // an idle client dropped by the pooler is replaced on next use
   return pool;
@@ -96,10 +99,15 @@ export async function query<R extends pg.QueryResultRow = pg.QueryResultRow>(
   return getPool().query<R>(sql, params);
 }
 
+/** A pooled client, once the schema is in place; the caller releases it. */
+export async function connect(): Promise<Client> {
+  await ensureSchema();
+  return getPool().connect();
+}
+
 /** Runs `fn` in one transaction; any throw rolls it back. */
 export async function transaction<T>(fn: (c: Client) => Promise<T>): Promise<T> {
-  await ensureSchema();
-  const c = await getPool().connect();
+  const c = await connect();
   try {
     await c.query('begin');
     const result = await fn(c);

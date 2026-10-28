@@ -1,37 +1,9 @@
 'use client';
 
-import Form from 'next/form';
-import Link from 'next/link';
-import {
-  useEffect,
-  useRef,
-  useState,
-  useTransition,
-  type ComponentProps,
-  type ReactNode,
-} from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { TABLES, TONE_CLASS, TONE_DOT, statusOption } from '@/lib/adminTables';
 import { setStatusAction } from '../actions';
-
-/** A GET form that navigates (client-side) as soon as a select or date changes. */
-export function AutoForm({ children, ...props }: ComponentProps<typeof Form>) {
-  return (
-    <Form
-      {...props}
-      onChange={(e) => {
-        const el = e.target as HTMLElement;
-        if (
-          el instanceof HTMLSelectElement ||
-          (el instanceof HTMLInputElement && el.type === 'date')
-        ) {
-          e.currentTarget.requestSubmit();
-        }
-      }}
-    >
-      {children}
-    </Form>
-  );
-}
+import { NavLink } from './nav';
 
 /** A `<details>` dropdown that closes on Escape and on a click outside it. */
 export function Popover({
@@ -219,7 +191,7 @@ export function EscapeLink({ href }: { href: string }) {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
   return (
-    <Link
+    <NavLink
       ref={ref}
       href={href}
       scroll={false}
@@ -236,6 +208,6 @@ export function EscapeLink({ href }: { href: string }) {
       >
         <path d="M6 6l12 12M18 6 6 18" />
       </svg>
-    </Link>
+    </NavLink>
   );
 }
