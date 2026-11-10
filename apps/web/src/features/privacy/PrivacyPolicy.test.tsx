@@ -8,7 +8,8 @@ describe('PrivacyPolicy', () => {
     render(<PrivacyPolicy />);
     expect(screen.getByRole('heading', { level: 1, name: 'Privacy policy' })).toBeInTheDocument();
     const nav = screen.getByRole('navigation', { name: 'On this page' });
-    expect(nav).toHaveTextContent('What we collect');
+    expect(nav).toHaveTextContent('What the app collects');
+    expect(nav).toHaveTextContent('What the website collects');
     expect(nav).toHaveTextContent('Your rights');
     expect(screen.getAllByRole('link', { name: 'connect@stepq.in' })[0]).toHaveAttribute(
       'href',
