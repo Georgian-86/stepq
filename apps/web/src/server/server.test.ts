@@ -131,7 +131,7 @@ const team = (bytes: Buffer, over: Record<string, unknown> = {}) => ({
   name: 'Aarav Mehta',
   email: 'aarav@gmail.com',
   phone: '9876543210',
-  role: 'design',
+  role: 'legal',
   why: 'I love building calm, useful products.',
   resume: { fileName: 'resume.pdf', base64: bytes.toString('base64') },
   website: '',

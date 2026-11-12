@@ -1,16 +1,14 @@
 import { z } from 'zod';
 import { email, honeypot, indianMobile, personName, requestId } from './fields';
 
-/** Open roles, from StepQ's job descriptions pack (the mobile app developer role is not listed). */
-export const ROLES = ['growth', 'partnerships', 'community', 'product', 'social', 'design'] as const;
+/** Open roles, from "StepQ JD as on 12.11.2026" (the founding intern squad), in priority order. */
+export const ROLES = ['social', 'partnerships', 'community', 'legal'] as const;
 
 export const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
-  growth: 'Growth Marketing Executive',
-  partnerships: 'Brand Partnerships & Sponsorship Manager',
-  community: 'Community & Campus Growth Manager',
-  product: 'Product & Retention Manager',
-  social: 'Social Media & Content Intern',
-  design: 'Design & Creative Intern',
+  social: 'Social Media & Content Creator Intern',
+  partnerships: 'Brand Partnerships & Creator Outreach Intern',
+  community: 'Campus & Community Ambassador Lead',
+  legal: 'Legal & Startup Compliance Intern',
 };
 
 export const RESUME_MAX_BYTES = 5 * 1024 * 1024;

@@ -252,8 +252,8 @@ async function expectTeamPage(page: Page) {
   const roles = page
     .getByRole('button', { expanded: true })
     .or(page.getByRole('button', { expanded: false }));
-  await expectAllShown(roles.filter({ hasText: /Manager|Executive|Intern/ }), 6);
-  await expectShown(page.locator('#role-growth-jd'));
+  await expectAllShown(roles.filter({ hasText: /Intern|Lead/ }), 4);
+  await expectShown(page.locator('#role-social-jd'));
   const form = page.getByRole('form', { name: 'Apply now' });
   await expectShown(
     h(form, 'Apply now', 2),
@@ -417,13 +417,13 @@ test.describe('Figma parity at 1440', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/join-the-team');
     await page.evaluate((email) => sessionStorage.setItem('stepq.teamApplication', email), EMAIL);
-    await page.goto('/join-the-team/sent?name=Riya&role=growth');
+    await page.goto('/join-the-team/sent?name=Riya&role=social');
     await expect(page.getByText(`reply to ${EMAIL}`)).toBeVisible();
     await settled(page);
     await expectConfirmation(
       page,
       'Application sent',
-      'Thanks, Riya. StepQ will review your application for Growth Marketing Executive',
+      'Thanks, Riya. StepQ will review your application for Social Media & Content Creator Intern',
     );
     await expect(page).toHaveScreenshot('w05.png', PARITY);
   });
@@ -550,7 +550,7 @@ test.describe('phone screenshots (390, saved for review)', () => {
   const shots: [name: string, path: string][] = [
     ['home', '/'],
     ['join-the-team', '/join-the-team'],
-    ['join-the-team-sent', '/join-the-team/sent?name=Riya&role=growth'],
+    ['join-the-team-sent', '/join-the-team/sent?name=Riya&role=social'],
     ['fund', '/fund'],
     ['fund-thank-you', '/fund/thank-you?amount=501'],
     ['ambassadors', '/ambassadors'],

@@ -25,7 +25,7 @@ const data = (bytes: Buffer, over: Record<string, unknown> = {}) => ({
   name: 'Aarav Mehta',
   email: 'aarav@gmail.com',
   phone: '9876543210',
-  role: 'design',
+  role: 'legal',
   why: 'I love building calm, useful products.',
   resume: { fileName: 'resume.pdf', base64: bytes.toString('base64') },
   website: '',
@@ -54,14 +54,14 @@ describe.skipIf(!hasEmulator)('submitTeamApplication', () => {
     const apps = await db().collection('teamApplications').get();
     expect(apps.size).toBe(1);
     const app = apps.docs[0]!;
-    expect(app.data()).toMatchObject({ role: 'design', resumePath: `resumes/${app.id}.pdf` });
+    expect(app.data()).toMatchObject({ role: 'legal', resumePath: `resumes/${app.id}.pdf` });
     const [meta] = await bucket().file(`resumes/${app.id}.pdf`).getMetadata();
     expect(meta.contentType).toBe('application/pdf');
     const mails = await db().collection('mail').get();
     expect(mails.size).toBe(1);
     const m = mails.docs[0]!.data();
     expect(m.template).toBe('teamApplicationAlert');
-    expect(m.props.roleLabel).toBe('Design & Creative Intern');
+    expect(m.props.roleLabel).toBe('Legal & Startup Compliance Intern');
     expect(m.props.resumeUrl).toBeTruthy();
     expect(m.props.resumeUrl).toContain(encodeURIComponent(`resumes/${app.id}.pdf`));
   });
