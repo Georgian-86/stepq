@@ -3,152 +3,112 @@ import type { ROLES } from '@stepq/schemas';
 type Role = (typeof ROLES)[number];
 
 export interface RoleDescription {
-  type: 'Full-time' | 'Internship';
+  /** Commitment, e.g. "Part-time / Full-time". */
+  type: string;
   area: string;
+  location: string;
+  duration: string;
+  perks: string;
   summary: string;
   responsibilities: string[];
   requirements: string[];
-  howToApply: string;
+  /** The 15-minute screening task shortlisted candidates are asked to do. */
+  screeningTask: string;
 }
 
-/** Job descriptions from "StepQ Job Descriptions & Internship Roles" (client PDF). */
+/** Job descriptions from "StepQ JD as on 12.11.2026" (Founding Intern Squad hiring pack). */
 export const ROLE_DESCRIPTIONS: Record<Role, RoleDescription> = {
-  growth: {
-    type: 'Full-time',
-    area: 'Growth & Marketing',
+  social: {
+    type: 'Part-time / Full-time',
+    area: 'Social Media & Content',
+    location: 'Mumbai (Hybrid / On-site for shoots)',
+    duration: 'Minimum 6 months',
+    perks: 'Stipend + Official Page Feature + Certificate',
     summary:
-      'Own StepQ’s user-acquisition experiments and growth funnel, helping turn awareness into genuine app registrations, first completed walks, referrals, and repeat activity.',
+      'We are looking for a high-energy, extroverted creator who lives on Instagram Reels and YouTube Shorts to become the creative engine behind StepQ’s pre-launch growth. You will own our daily social presence, shoot raw, relatable content with the founder, and bring mascot Piko’s cheerful energy to life.',
     responsibilities: [
-      'Plan and execute growth campaigns across digital channels, referral loops, community activations, and relevant partnerships.',
-      'Build and test acquisition funnels from campaign impression through install, registration, first qualifying walk, and repeat use.',
-      'Develop campaign briefs, landing-page ideas, referral offers, and experiments to improve conversion.',
-      'Monitor campaign performance and prepare a concise weekly dashboard covering installs, activated users, retention, and acquisition cost where tracking is available.',
-      'Work with content, design, campus growth, and product teams to coordinate launches and experiments.',
-      'Research competitor activity and audience insights; recommend practical, budget-conscious growth opportunities.',
-      'Maintain responsible marketing practices: no misleading claims about earnings, rewards, health benefits, or guaranteed outcomes.',
+      'Execute StepQ’s daily posting cadence: 1 feed post daily (90-day consistency sprint), including 3 carousels and 3 low-editing, high-hook Reels every week.',
+      'Manage daily Instagram Stories on a structured cadence (Mon: 1, Tue: 2, Wed: 3, Thu: 1, Fri: 2, Sat: 3, Sun: 2) using interactive polls, step challenges, and community shoutouts.',
+      'Conduct twice-weekly content shoots with the founder to capture candid talking-head clips, startup behind-the-scenes, and walking POVs.',
+      'Design clean, on-brand visual posts in Canva/Figma using StepQ’s brand colors, typography, and Piko mascot assets.',
+      'Track daily engagement, reply to comments/DMs promptly, and adapt trending Indian audio and Hinglish hooks for StepQ.',
     ],
     requirements: [
-      'Experience in digital marketing, growth, performance marketing, or a relevant project; strong fresh graduates may apply.',
-      'Comfort with spreadsheets and interpreting campaign metrics; familiarity with analytics or attribution tools is an advantage.',
-      'Strong communication, experimentation, organisation, and problem-solving skills.',
-      'Ability to manage multiple experiments and report results clearly.',
+      'Extroverted, self-starter mindset with a bias for action (‘get things done’ attitude) and comfort appearing on or behind camera.',
+      'Strong grasp of Instagram Reels trends, pacing, hooks, and basic mobile editing tools (CapCut, VN, InShot, Canva).',
+      'Open to local travel in Mumbai for founder shoots and weekend community QRuns.',
+      'Fluent in conversational English and Hindi/Hinglish copywriting.',
     ],
-    howToApply:
-      'Share your CV and a short example of a campaign, growth experiment, or project you have worked on.',
+    screeningTask:
+      'Shoot and edit one 15-second vertical walking POV Reel introducing StepQ (‘Chalo, chalte hain’) with on-screen hook text and trending audio.',
   },
   partnerships: {
-    type: 'Full-time',
-    area: 'Business Development & Partnerships',
+    type: 'Part-time / Full-time',
+    area: 'Partnerships & Creator Outreach',
+    location: 'Mumbai / Hybrid',
+    duration: 'Minimum 6 months',
+    perks: 'Stipend + Performance Incentives + Certificate',
     summary:
-      'Build commercial and promotional partnerships that help StepQ offer relevant rewards, sponsor-led walking challenges, and mutually beneficial brand campaigns.',
+      'StepQ’s core promise is ‘Piko pays you to walk.’ We need a relentless, persuasive communicator to build our initial network of micro-creators and onboard partner brands (cafes, footwear, healthy snacks, fitness gear) onto StepQ’s in-app reward wall ahead of launch.',
     responsibilities: [
-      'Identify and approach potential partners such as fitness and wellness brands, sports retailers, cafés, gyms, colleges, local businesses, and consumer brands.',
-      'Create partnership proposals, sponsorship packages, campaign concepts, and clear value propositions for prospective partners.',
-      'Negotiate campaign scope, deliverables, timelines, reward contributions, and commercial terms within approved limits.',
-      'Build and maintain a structured pipeline of prospects, contacts, follow-ups, proposals, and outcomes.',
-      'Coordinate with marketing and product teams to deliver partner campaigns and report agreed results.',
-      'Maintain professional partner relationships and identify renewal, cross-promotion, and upsell opportunities.',
-      'Ensure all offers, sponsorship claims, and reward terms are accurate and approved before publication.',
+      'Execute daily outbound prospecting: send at least 20 personalized collaboration DMs to nano/micro creators across Instagram and YouTube every day.',
+      'Pitch at least 50 consumer brands, local cafes, and wellness startups daily via Instagram, LinkedIn, and email to secure reward vouchers and sponsor wall placements.',
+      'Maintain the StepQ Outreach CRM daily, track response pipelines, and finalize a vetted daily list of confirmed creator collaborations.',
+      'Check inbox every morning, manage follow-up sequences, and coordinate closely with the founder for final partnership sign-offs.',
+      'Leverage personal and campus networks to unlock warm introductions with emerging D2C brands and student creators.',
     ],
     requirements: [
-      'Experience in sales, business development, sponsorships, account management, or partnerships is preferred.',
-      'Strong pitching, negotiation, written communication, and relationship-building skills.',
-      'Able to prepare clear presentations and track a sales pipeline in a spreadsheet or CRM.',
-      'Comfortable with outreach, follow-ups, and working toward measurable targets.',
+      'Fearless cold-outreach attitude with persuasive written and verbal communication skills.',
+      'High operational discipline: able to hit daily outreach quotas (20 creators + 50 brands) and keep spreadsheets spotless.',
+      'Quick decision-making ability and entrepreneurial ownership (‘treat it like your own company’).',
+      'Existing network in Mumbai college or creator circles is a strong bonus.',
     ],
-    howToApply:
-      'Share your CV and, if available, an example of a pitch, partnership, or sales project.',
+    screeningTask:
+      'List 5 Indian D2C brands and 5 micro-creators ideal for StepQ, and write a customized 4-line DM pitch for one brand and one creator.',
   },
   community: {
-    type: 'Full-time',
-    area: 'Community & User Growth',
+    type: 'Part-time / Flexible',
+    area: 'Campus & Community',
+    location: 'Mumbai (Field & Campus)',
+    duration: '3–6 months',
+    perks: 'Stipend + Exclusive StepQ Merch + Certificate',
     summary:
-      'Grow StepQ through college communities, campus ambassadors, local groups, and recurring walking challenges that encourage genuine participation.',
+      'Walking is better together. As StepQ’s Community & Campus Lead, you will build our grassroots movement across Mumbai colleges and residential societies: recruiting campus ambassadors, hosting weekend QRuns, and turning early waitlist signups into an active walking tribe.',
     responsibilities: [
-      'Build and manage a network of campus ambassadors and student representatives.',
-      'Create campus launch plans, walking challenges, leaderboard activities, and community engagement calendars.',
-      'Develop relationships with college clubs, societies, student councils, sports groups, and relevant local communities.',
-      'Provide ambassadors with clear onboarding materials, campaign guidelines, approved creatives, and tracking links or codes where available.',
-      'Track registrations, first walks, challenge participation, referrals, and ongoing activity by campus.',
-      'Gather user feedback and share recurring issues, feature requests, and engagement ideas with the product team.',
-      'Maintain respectful community standards and protect users’ personal information; avoid spam, fake sign-ups, or unapproved incentives.',
+      'Recruit, onboard, and manage a squad of Campus Ambassadors across top Mumbai colleges (NMIMS, Mithibai, St. Xavier’s, HR, KC, Jai Hind, IIT-B, etc.).',
+      'Plan and host weekly community walking meetups (‘QRuns’) at iconic Mumbai spots (Marine Drive, Carter Road, Shivaji Park, Juhu).',
+      'Manage StepQ’s early-access WhatsApp and Instagram broadcast communities, running daily step streaks and leaderboard challenges.',
+      'Collect user feedback from early testers and share actionable product insights with the founder.',
+      'Coordinate campus distribution of StepQ waitlist QR posters and referral challenges.',
     ],
     requirements: [
-      'Experience in community building, student engagement, events, field marketing, or ambassador programmes is preferred.',
-      'Strong people skills, coordination, communication, and event-planning ability.',
-      'Willingness to engage with colleges and communities, including occasional on-site activities if required.',
-      'Comfort with spreadsheets, basic reporting, and coordinating multiple representatives.',
+      'Active student leader, fest organizer, sports captain, or club head with strong peer influence.',
+      'Naturally social, energetic, and excited about fitness, running clubs, or community building.',
+      'Available on weekends to lead or co-host local QRun walking sessions.',
     ],
-    howToApply:
-      'Share your CV and briefly describe a community, campus, or event you have helped organise.',
+    screeningTask:
+      'Outline a 1-page plan to get your first 100 college students to join the StepQ waitlist and show up for a Sunday morning QRun.',
   },
-  product: {
-    type: 'Full-time',
-    area: 'Product Management & User Retention',
+  legal: {
+    type: 'Part-time / Project-based (5–8 hrs/week)',
+    area: 'Legal & Compliance',
+    location: 'Remote / Mumbai',
+    duration: '3–6 months (flexible weekly hours)',
+    perks: 'Stipend / Project Fee + Letter of Recommendation + Certificate',
     summary:
-      'Help users form a lasting walking habit by improving StepQ’s onboarding, daily engagement, challenge experience, and return rate.',
+      'As StepQ prepares to launch user milestone rewards, brand sponsorships, and ambassador programs, we are looking for a detail-oriented law student to help establish clean, startup-ready contracts and compliance documentation.',
     responsibilities: [
-      'Map the user journey from first app visit to registration, first walk, repeat use, and long-term retention.',
-      'Analyse funnel and cohort data to identify drop-off points and opportunities to improve activation.',
-      'Plan and prioritise experiments involving reminders, streaks, challenges, milestones, rewards, and social features.',
-      'Collect and synthesise user feedback, support themes, usability findings, and competitor insights.',
-      'Write product requirements, user stories, acceptance criteria, and release notes in collaboration with engineering and design.',
-      'Define success metrics before experiments and assess results without overstating causality.',
-      'Work with marketing and partnerships to ensure reward mechanics and campaign promises match the actual product experience.',
+      'Draft and review StepQ’s Website & App Terms of Service and Privacy Policy (aligned with India’s Digital Personal Data Protection [DPDP] Act for user step/activity data).',
+      'Create standardized Brand Partnership & Sponsor Wall MOUs, Barter Agreements, and Creator Collaboration contracts.',
+      'Draft Internship Offer Letters, Non-Disclosure Agreements (NDAs), and Campus Ambassador guidelines.',
+      'Assist with basic startup compliance research covering promotional giveaways, reward terms, and IP protection for mascot Piko.',
     ],
     requirements: [
-      'Experience in product management, UX research, customer experience, analytics, or a relevant product project is preferred.',
-      'Strong analytical thinking, prioritisation, communication, and user-empathy skills.',
-      'Comfort with spreadsheets and funnel or cohort analysis; product analytics experience is an advantage.',
-      'Ability to turn ambiguous feedback into clear, testable product improvements.',
+      '4th- or 5th-year LL.B. student (from GLC, NMIMS, MNLU, Symbiosis, or equivalent) with strong drafting skills.',
+      'Prior internship experience at a startup, commercial law firm, or IP/technology practice.',
+      'Ability to translate legal requirements into clear, plain-English clauses without unnecessary jargon.',
     ],
-    howToApply:
-      'Share your CV and a short product case study or idea for improving retention in a consumer mobile app.',
-  },
-  social: {
-    type: 'Internship',
-    area: 'Marketing & Communications',
-    summary:
-      'Create engaging, platform-native content that introduces StepQ, brings Piko to life, and encourages people to try walking challenges and discover the app.',
-    responsibilities: [
-      'Research trends and plan a weekly content calendar for platforms such as Instagram and other channels used by StepQ.',
-      'Develop ideas and drafts for Reels, short videos, carousels, stories, captions, memes, and campaign posts.',
-      'Coordinate with the design intern to create consistent content around Piko, walking habits, challenges, and app features.',
-      'Help collect user-generated content and testimonials only with clear permission and accurate context.',
-      'Schedule approved content and maintain a record of posts, reach, shares, saves, profile visits, and attributed installs where available.',
-      'Respond to routine comments or messages using approved guidelines and escalate sensitive or technical issues.',
-      'Use only licensed or authorised media and avoid misleading health, income, or reward claims.',
-    ],
-    requirements: [
-      'Interest in social media, storytelling, trends, fitness, lifestyle, or creator culture.',
-      'Good writing and communication skills; basic short-form video editing is an advantage.',
-      'Creative, dependable, open to feedback, and able to meet agreed deadlines.',
-      'A portfolio, sample posts, or personal content account is welcome but not mandatory.',
-    ],
-    howToApply:
-      'Share your CV and 2–3 sample content ideas for StepQ. A short creative task may be used during selection.',
-  },
-  design: {
-    type: 'Internship',
-    area: 'Graphic Design & Visual Communication',
-    summary:
-      'Create clear, energetic, brand-consistent visuals for StepQ’s app, social channels, campaigns, and Piko mascot.',
-    responsibilities: [
-      'Design social posts, story templates, banners, app promotional creatives, challenge cards, badges, and campaign assets.',
-      'Help maintain a consistent visual system for typography, colours, layout, and use of the StepQ identity.',
-      'Develop creative variations for marketing experiments and adapt designs to different platform sizes.',
-      'Collaborate with the content, growth, and product teams to translate briefs into effective visual assets.',
-      'Support Piko-related creative work, including expressions, stickers, and simple illustrations where skills allow.',
-      'Organise editable source files and exports with clear naming and version control.',
-      'Use authorised fonts, images, illustrations, and other assets; follow accessibility and readability basics.',
-    ],
-    requirements: [
-      'Interest or experience in graphic design, visual communication, or digital content.',
-      'Familiarity with Canva, Figma, Adobe tools, or comparable design software.',
-      'Good attention to detail, layout, typography, and consistency.',
-      'Willingness to iterate based on feedback and work to agreed deadlines.',
-    ],
-    howToApply:
-      'Share a portfolio or 3–5 design samples. Student and beginner portfolios are welcome.',
+    screeningTask:
+      'Draft a concise 1-paragraph Barter Collaboration clause protecting StepQ when a partner brand provides discount vouchers for app users.',
   },
 };

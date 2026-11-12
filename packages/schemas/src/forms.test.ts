@@ -19,7 +19,7 @@ const team = {
   ...base,
   email: 'riya@gmail.com',
   phone: '9876543210',
-  role: 'design',
+  role: 'legal',
   why: 'I love building things.',
   resume: { fileName: 'cv.pdf', base64: 'AAAA' },
 };

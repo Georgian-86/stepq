@@ -51,7 +51,7 @@ describe('preview copy', () => {
 
   it('thank-you sentences (W05, W08, W11, W17) say nothing was saved or emailed', () => {
     expect(founderSent('Riya')).toBe(`Thanks, Riya. ${PREVIEW_NOTHING_SAVED}`);
-    expect(teamSent({ name: 'Riya', role: 'design', email: 'riya@example.com' })).toBe(
+    expect(teamSent({ name: 'Riya', role: 'legal', email: 'riya@example.com' })).toBe(
       `Thanks, Riya. ${PREVIEW_NOTHING_SAVED}`,
     );
     expect(receivedMessage('Riya')).toBe(`Thanks, Riya. ${PREVIEW_NOTHING_SAVED}`);

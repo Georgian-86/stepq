@@ -76,13 +76,22 @@ export function RoleList({
               hidden={!isOpen}
               className="mt-[12px] flex-col gap-[16px] [&:not([hidden])]:flex"
             >
+              <dl className="type-web-small grid grid-cols-[auto_1fr] gap-x-[12px] gap-y-[4px]">
+                <dt className="text-ink">Location</dt>
+                <dd className="text-muted">{jd.location}</dd>
+                <dt className="text-ink">Duration</dt>
+                <dd className="text-muted">{jd.duration}</dd>
+                <dt className="text-ink">Perks</dt>
+                <dd className="text-muted">{jd.perks}</dd>
+              </dl>
               <p className="type-web-body text-muted">{jd.summary}</p>
               <JdList title="What you will do" items={jd.responsibilities} />
               <JdList title="What we are looking for" items={jd.requirements} />
               <div className="flex flex-col gap-[8px]">
                 <h4 className="type-web-body-strong text-ink">How to apply</h4>
                 <p className="type-web-small text-muted">
-                  {jd.howToApply} Use the form on this page.
+                  Send your CV with the form on this page. If you are shortlisted, we will ask for a
+                  15-minute screening task: {jd.screeningTask}
                 </p>
               </div>
             </div>

@@ -77,7 +77,7 @@ If this policy changes, the new version will be posted on this page.
 `;
 
 export const site: SiteContent = {
-  roles: ['growth', 'partnerships', 'community', 'product', 'social', 'design'],
+  roles: ['social', 'partnerships', 'community', 'legal'],
   ambassadorEligibility:
     'Anyone 18 or older who lives in India and can bring people together: a college, an office, a housing society or a neighbourhood group. A big following helps, but is not required.',
   ambassadorTerms: [

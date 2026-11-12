@@ -34,43 +34,54 @@ describe('JoinTeam (W04)', () => {
     const user = userEvent.setup();
     render(<JoinTeam />);
     const select = screen.getByLabelText('Position applied for');
-    expect(card(/Growth Marketing Executive/)).toHaveAttribute('aria-expanded', 'true');
-    expect(card(/Growth Marketing Executive/)).toHaveTextContent('Full-time · Growth & Marketing');
-    expect(select).toHaveValue('growth');
+    expect(card(/Social Media & Content Creator Intern/)).toHaveAttribute('aria-expanded', 'true');
+    expect(card(/Social Media & Content Creator Intern/)).toHaveTextContent(
+      'Part-time / Full-time · Social Media & Content',
+    );
+    expect(select).toHaveValue('social');
     // The open card shows the role's job description.
-    expect(screen.getByText(/Own StepQ’s user-acquisition experiments/)).toBeVisible();
+    expect(screen.getByText(/high-energy, extroverted creator/)).toBeVisible();
     expect(screen.getByRole('heading', { name: 'What you will do' })).toBeVisible();
 
-    await user.click(card(/Social Media & Content Intern/));
-    expect(select).toHaveValue('social');
-    expect(card(/Social Media & Content Intern/)).toHaveAttribute('aria-expanded', 'true');
-    expect(card(/Social Media & Content Intern/)).toHaveTextContent('Internship');
-    expect(card(/Growth Marketing Executive/)).toHaveAttribute('aria-expanded', 'false');
+    await user.click(card(/Brand Partnerships & Creator Outreach Intern/));
+    expect(select).toHaveValue('partnerships');
+    expect(card(/Brand Partnerships & Creator Outreach Intern/)).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(card(/Brand Partnerships & Creator Outreach Intern/)).toHaveTextContent(
+      'Part-time / Full-time · Partnerships & Creator Outreach',
+    );
+    expect(card(/Social Media & Content Creator Intern/)).toHaveAttribute('aria-expanded', 'false');
 
-    await user.selectOptions(select, 'design');
-    expect(card(/Social Media & Content Intern/)).toHaveAttribute('aria-expanded', 'true');
-    expect(card(/Design & Creative Intern/)).toHaveAttribute('aria-expanded', 'false');
+    await user.selectOptions(select, 'legal');
+    expect(card(/Brand Partnerships & Creator Outreach Intern/)).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(card(/Legal & Startup Compliance Intern/)).toHaveAttribute('aria-expanded', 'false');
 
     // Closing the open card keeps the selection.
-    await user.click(card(/Social Media & Content Intern/));
-    expect(card(/Social Media & Content Intern/)).toHaveAttribute('aria-expanded', 'false');
-    expect(card(/Social Media & Content Intern/)).toHaveTextContent('View JD');
-    expect(select).toHaveValue('design');
+    await user.click(card(/Brand Partnerships & Creator Outreach Intern/));
+    expect(card(/Brand Partnerships & Creator Outreach Intern/)).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    expect(card(/Brand Partnerships & Creator Outreach Intern/)).toHaveTextContent('View JD');
+    expect(select).toHaveValue('legal');
   });
 
-  it('lists the six roles from the job descriptions pack, without the app developer', () => {
+  it('lists the four roles from the 12.11.2026 job descriptions, without the app developer', () => {
     render(<JoinTeam />);
     const options = Array.from(
       (screen.getByLabelText('Position applied for') as HTMLSelectElement).options,
     ).map((o) => o.textContent);
     expect(options).toEqual([
       'Choose a role',
-      'Growth Marketing Executive',
-      'Brand Partnerships & Sponsorship Manager',
-      'Community & Campus Growth Manager',
-      'Product & Retention Manager',
-      'Social Media & Content Intern',
-      'Design & Creative Intern',
+      'Social Media & Content Creator Intern',
+      'Brand Partnerships & Creator Outreach Intern',
+      'Campus & Community Ambassador Lead',
+      'Legal & Startup Compliance Intern',
     ]);
     expect(screen.queryByText(/App Developer/i)).toBeNull();
   });
@@ -86,12 +97,12 @@ describe('JoinTeam (W04)', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Submit application' }));
     await waitFor(() =>
-      expect(push).toHaveBeenCalledWith('/join-the-team/sent?name=Riya&role=growth'),
+      expect(push).toHaveBeenCalledWith('/join-the-team/sent?name=Riya&role=social'),
     );
     const [name, data] = call.mock.calls[0]!;
     expect(name).toBe('submitTeamApplication');
     expect(data).toMatchObject({
-      role: 'growth',
+      role: 'social',
       link: 'https://linkedin.com/in/riya',
       resume: { fileName: 'Riya_Sharma_Resume.pdf' },
       website: '',
