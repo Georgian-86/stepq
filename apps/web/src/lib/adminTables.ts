@@ -137,6 +137,29 @@ export const TABLES: Record<string, TableDef> = {
     },
   },
   admins: { label: 'Admins', columns: ['name', 'email', 'added_by', 'created_at'] },
+  push_campaigns: {
+    label: 'Push notifications',
+    blurb: 'Notifications sent to the StepQ app. Write a new one above the list.',
+    columns: [
+      'title',
+      'body',
+      'audience',
+      'status',
+      'send_at',
+      'recipients',
+      'delivered',
+      'failed',
+      'error',
+      'created_by',
+    ],
+    filters: ['audience', 'status'],
+  },
+  push_sends: {
+    label: 'Push nudge log',
+    internal: true,
+    columns: ['kind', 'day', 'user_id', 'created_at'],
+    filters: ['kind', 'day'],
+  },
   site_events: {
     label: 'Website clicks',
     internal: true,
@@ -171,6 +194,9 @@ const COLUMN_LABELS: Record<string, string> = {
   last_error: 'Last error',
   reply_to: 'Reply to',
   amount: 'Amount (₹)',
+  send_at: 'Sends at',
+  image_url: 'Picture',
+  created_by: 'By',
 };
 
 export function columnLabel(name: string): string {

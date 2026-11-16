@@ -25,6 +25,10 @@ export const env = {
   /** 'outbox' = keep mail queued without sending; 'log' = mark it sent without sending (e2e). */
   mailTransport: () => read('MAIL_TRANSPORT'),
   resendApiKey: () => read('RESEND_API_KEY'),
+  /** Firebase service account JSON (or base64 of it), for sending app push notifications. */
+  firebaseServiceAccount: () => read('FIREBASE_SERVICE_ACCOUNT'),
+  /** Shared secret the scheduler sends as `Authorization: Bearer …` to /api/cron/push. */
+  cronSecret: () => read('CRON_SECRET'),
   smtp: () => ({
     host: read('SMTP_HOST'),
     port: Number(read('SMTP_PORT', '465')),
