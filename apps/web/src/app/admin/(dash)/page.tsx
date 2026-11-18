@@ -11,6 +11,7 @@ import {
   readFacets,
   readOverview,
   readRow,
+  readScheduledPushes,
   readSite,
   readTable,
   type SiteStats,
@@ -21,6 +22,8 @@ import { signedInUser } from '@/server/admin/session';
 import { logout } from '../actions';
 import { AddAdminForm } from '../AddAdminForm';
 import { EditAdminForm } from '../EditAdminForm';
+import { PushComposer } from '../PushComposer';
+import { pushConfigured } from '@/server/push/fcm';
 import { adminHref, chosenColumns, first, rowQuery, type Params } from '../params';
 import { PanelGate } from '../ui/nav';
 import { Overview, RANGES } from '../ui/Overview';
@@ -91,7 +94,8 @@ async function View({ params }: { params: Params }) {
     const facets = await readFacets(c, t, facetCols, q);
     const row = rowId ? await readRow(c, t, rowId) : undefined;
     const editing = t === 'admins' && edit && UUID.test(edit) ? await readAdmin(c, edit) : null;
-    return { kind: 'table', current, data, facets, row, editing } as const;
+    const scheduled = t === 'push_campaigns' ? await readScheduledPushes(c) : [];
+    return { kind: 'table', current, data, facets, row, editing, scheduled } as const;
   });
 
   if (!view) {
@@ -130,6 +134,9 @@ async function View({ params }: { params: Params }) {
       >
         {view.current.name === 'admins' && (
           <AdminForms params={params} editing={view.editing} selfId={user.id} />
+        )}
+        {view.current.name === 'push_campaigns' && (
+          <PushComposer configured={pushConfigured()} scheduled={view.scheduled} />
         )}
       </TableView>
       {rowId && view.row !== undefined && (

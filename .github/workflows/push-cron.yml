@@ -1,0 +1,23 @@
+name: Push scheduler
+
+# Every 15 minutes, asks stepq.in to send due admin pushes and the automatic nudges for that time
+# of day (India time). Does nothing until the CRON_SECRET repository secret is set, matching
+# CRON_SECRET on Vercel. GitHub may run scheduled jobs a few minutes late; every nudge has a
+# window of an hour or more, so that is fine.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call /api/cron/push
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://stepq.in' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET not set; skipping."; exit 0; fi
+          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/push"

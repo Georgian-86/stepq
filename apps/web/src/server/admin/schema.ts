@@ -265,6 +265,111 @@ $fn$;
 revoke all on function stepq.set_status(text, text, text, text, text) from public;
 grant execute on function stepq.set_status(text, text, text, text, text) to authenticated;
 
+-- Push notifications to the app. An admin writes one in the dashboard (stepq.queue_push); the
+-- server sends it through Firebase at send_at and fills in the counts. push_sends logs the
+-- automatic nudges (one row per person, kind and India day), so nobody gets the same nudge
+-- twice in a day. Only the server's own connection writes either table directly.
+create table if not exists stepq.push_campaigns (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (length(trim(title)) between 1 and 65),
+  body text not null check (length(trim(body)) between 1 and 240),
+  audience text not null check (audience in ('everyone', 'not_walked_today', 'goal_reached_today', 'username')),
+  username text,
+  image_url text check (image_url is null or image_url ~ '^https://'),
+  route text not null default 'home'
+    check (route in ('home', 'friends', 'groups', 'qrun', 'challenges', 'profile')),
+  send_at timestamptz not null default now(),
+  status text not null default 'queued'
+    check (status in ('queued', 'sending', 'sent', 'failed', 'cancelled')),
+  recipients int,
+  delivered int,
+  failed int,
+  error text,
+  created_by text,
+  created_at timestamptz not null default now(),
+  started_at timestamptz,
+  finished_at timestamptz,
+  check (audience <> 'username' or length(trim(coalesce(username, ''))) > 0)
+);
+create index if not exists push_campaigns_due_idx on stepq.push_campaigns (send_at)
+  where status = 'queued';
+
+create table if not exists stepq.push_sends (
+  user_id uuid not null,
+  kind text not null,
+  day date not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, kind, day)
+);
+create index if not exists push_sends_day_idx on stepq.push_sends (day);
+
+create or replace function stepq.queue_push(
+  p_title text, p_body text, p_audience text, p_username text, p_image_url text, p_route text,
+  p_send_at timestamptz
+)
+returns uuid
+language plpgsql volatile security definer set search_path = ''
+as $fn$
+declare
+  me jsonb := nullif(current_setting('request.jwt.claims', true), '')::jsonb;
+  new_id uuid;
+begin
+  if not stepq.is_admin() then
+    raise exception 'Only admins can send notifications.' using errcode = '42501';
+  end if;
+  if length(trim(coalesce(p_title, ''))) not between 1 and 65 then
+    raise exception 'Write a title of up to 65 characters.' using errcode = '22023';
+  end if;
+  if length(trim(coalesce(p_body, ''))) not between 1 and 240 then
+    raise exception 'Write a message of up to 240 characters.' using errcode = '22023';
+  end if;
+  if p_audience not in ('everyone', 'not_walked_today', 'goal_reached_today', 'username') then
+    raise exception 'Pick who gets it.' using errcode = '22023';
+  end if;
+  if p_audience = 'username' and length(trim(coalesce(p_username, ''))) = 0 then
+    raise exception 'Enter the username to send it to.' using errcode = '22023';
+  end if;
+  if nullif(trim(p_image_url), '') is not null and trim(p_image_url) !~ '^https://' then
+    raise exception 'The picture link must start with https://' using errcode = '22023';
+  end if;
+  if coalesce(p_send_at, now()) > now() + interval '60 days' then
+    raise exception 'Schedule it within the next 60 days.' using errcode = '22023';
+  end if;
+  insert into stepq.push_campaigns (title, body, audience, username, image_url, route, send_at, created_by)
+  values (
+    trim(p_title), trim(p_body), p_audience,
+    case when p_audience = 'username' then lower(trim(both '@ ' from p_username)) end,
+    nullif(trim(p_image_url), ''), coalesce(nullif(p_route, ''), 'home'),
+    greatest(coalesce(p_send_at, now()), now()), me ->> 'email'
+  )
+  returning id into new_id;
+  return new_id;
+end
+$fn$;
+
+-- Cancels a push that has not started sending.
+create or replace function stepq.cancel_push(target uuid)
+returns void
+language plpgsql volatile security definer set search_path = ''
+as $fn$
+declare n int;
+begin
+  if not stepq.is_admin() then
+    raise exception 'Only admins can cancel notifications.' using errcode = '42501';
+  end if;
+  update stepq.push_campaigns set status = 'cancelled', finished_at = now()
+    where id = target and status = 'queued';
+  get diagnostics n = row_count;
+  if n = 0 then
+    raise exception 'That notification is already on its way.' using errcode = '22023';
+  end if;
+end
+$fn$;
+revoke all on function stepq.queue_push(text, text, text, text, text, text, timestamptz) from public;
+revoke all on function stepq.cancel_push(uuid) from public;
+grant execute on function stepq.queue_push(text, text, text, text, text, text, timestamptz) to authenticated;
+grant execute on function stepq.cancel_push(uuid) to authenticated;
+
 -- Every table, including ones added later, is readable by admins only. The check is wrapped in
 -- a subquery so Postgres runs it once per query, not once per row.
 do $$

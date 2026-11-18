@@ -14,7 +14,7 @@ const ADMIN_MARK = `admin:${createHash('sha256').update(ADMIN_SQL).digest('hex')
  * `stepq.is_admin`) or a table without the admins_read policy has appeared. Otherwise a cold
  * start costs one catalog read instead of DDL and table locks.
  */
-function ensureAdminSchema(): Promise<void> {
+export function ensureAdminSchema(): Promise<void> {
   ready ??= transaction(async (c) => {
     const current = async () => {
       const { rows } = await c.query<{ ok: boolean }>(
@@ -479,6 +479,22 @@ export async function deleteAdmin(c: Client, userId: string): Promise<void> {
   } catch (e) {
     adminError(e);
   }
+}
+
+/** Admin pushes waiting for their send time, soonest first, for the composer's Cancel list. */
+export async function readScheduledPushes(
+  c: Client,
+): Promise<{ id: string; title: string; sendAt: string; audience: string }[]> {
+  const { rows } = await c.query<{ id: string; title: string; send_at: Date; audience: string }>(
+    `select id, title, send_at, audience from stepq.push_campaigns
+     where status = 'queued' and send_at > now() order by send_at limit 10`,
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    sendAt: r.send_at.toISOString(),
+    audience: r.audience,
+  }));
 }
 
 export type AdminProfile = { userId: string; email: string; name: string | null };

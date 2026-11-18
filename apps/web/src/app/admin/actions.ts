@@ -28,6 +28,8 @@ import { env } from '@/server/env';
 import { clientIp } from '@/server/http';
 import { deliverPendingMail, queueMail } from '@/server/mail';
 import { enforceRateLimit } from '@/server/rateLimit';
+import { deliverCampaigns } from '@/server/push/deliver';
+import { pushConfigured } from '@/server/push/fcm';
 
 export type LoginState = { error?: string; email?: string };
 
@@ -182,6 +184,87 @@ export async function setStatusAction(
     if (e instanceof ApiError) return { error: e.message };
     console.error('set status', loggable(e));
     return { error: 'Could not save. Try again in a minute.' };
+  }
+  revalidatePath('/admin');
+  return {};
+}
+
+export type PushState = { error?: string; done?: string };
+
+const IST_OFFSET = '+05:30';
+
+/**
+ * Queues a push to the app (see `stepq.queue_push`, which checks the caller is an admin), then
+ * starts sending it straight away when it is due now. Scheduled ones go out on the next run of
+ * the push scheduler at or after their time.
+ */
+export async function queuePushAction(_prev: PushState, form: FormData): Promise<PushState> {
+  const user = await adminUser();
+  if (!user) return { error: 'Your session has ended. Sign in again.' };
+  const when = String(form.get('send_at') ?? '').trim();
+  // The form's datetime-local is India time.
+  const sendAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(when) ? `${when}:00${IST_OFFSET}` : null;
+  const audience = String(form.get('audience') ?? 'everyone');
+  try {
+    await asUser(user, (c) =>
+      c
+        .query('select stepq.queue_push($1, $2, $3, $4, $5, $6, $7::timestamptz)', [
+          String(form.get('title') ?? ''),
+          String(form.get('body') ?? ''),
+          audience,
+          String(form.get('username') ?? ''),
+          String(form.get('image_url') ?? ''),
+          String(form.get('route') ?? 'home'),
+          sendAt,
+        ])
+        .catch((e: { code?: string; message: string }) => {
+          if (e.code === '42501') throw new ApiError('permission-denied', e.message);
+          if (e.code === '22023') throw new ApiError('invalid-argument', e.message);
+          throw e;
+        }),
+    );
+  } catch (e) {
+    if (e instanceof ApiError) return { error: e.message };
+    console.error('queue push', loggable(e));
+    return { error: 'Could not queue it. Try again in a minute.' };
+  }
+  const later = sendAt && Date.parse(sendAt) > Date.now() + 60_000;
+  if (!later) {
+    after(() => deliverCampaigns().catch((e) => console.error('push delivery', loggable(e))));
+  }
+  revalidatePath('/admin');
+  if (!pushConfigured()) {
+    return {
+      done: 'Queued. It will go out once Firebase is connected (FIREBASE_SERVICE_ACCOUNT on Vercel).',
+    };
+  }
+  return {
+    done: later
+      ? 'Scheduled. It goes out at that time (within 15 minutes).'
+      : audience === 'username'
+        ? 'Sending now. Refresh in a few seconds to see if it arrived.'
+        : 'Sending now. The counts below fill in as it goes out.',
+  };
+}
+
+/** Cancels a scheduled push that has not started sending. */
+export async function cancelPushAction(id: string): Promise<StatusResult> {
+  const user = await adminUser();
+  if (!user) return { error: 'Your session has ended. Sign in again.' };
+  try {
+    await asUser(user, (c) =>
+      c
+        .query('select stepq.cancel_push($1)', [id])
+        .catch((e: { code?: string; message: string }) => {
+          if (e.code === '42501' || e.code === '22023')
+            throw new ApiError('invalid-argument', e.message);
+          throw e;
+        }),
+    );
+  } catch (e) {
+    if (e instanceof ApiError) return { error: e.message };
+    console.error('cancel push', loggable(e));
+    return { error: 'Could not cancel. Try again in a minute.' };
   }
   revalidatePath('/admin');
   return {};

@@ -130,6 +130,38 @@ These run as database functions (`stepq.add_admin`, `stepq.update_admin`, `stepq
 that check the caller is an admin, so no service key is involved.
 Sign-in attempts are rate limited per IP.
 
+## App push notifications (`/admin` → Push notifications)
+
+Admins write pushes in the dashboard (who gets it, where a tap opens, now or scheduled), and the
+site sends automatic nudges on its own, all India time, at most 4 a day per person (the
+goal-reached celebration always goes through):
+
+| Kind | When | Who |
+| --- | --- | --- |
+| Morning kick-off | 08:00–10:00 | under 500 steps, walked in the last 3 days |
+| Water | 11:30 and 16:30 | everyone |
+| Evening behind / close | 18:30–20:00 | under 60% / 60–99% of goal |
+| Streak at risk | 20:30–22:00 | 2+ days in a row at goal, not there yet today |
+| Goal reached | as soon as it happens, 07:00–22:30 | hit the daily goal |
+| Come back | 10:00–12:00 | exactly 3 or 7 days without steps |
+
+The lines themselves are in `apps/web/src/lib/pushCopy.ts`; edit them there.
+
+Turning it on (owner, once):
+
+1. Firebase console → the StepQ project → Project settings → Service accounts → **Generate new
+   private key**. Paste the whole JSON into Vercel as `FIREBASE_SERVICE_ACCOUNT` (Production
+   only, sensitive). Never commit it or put it in the app.
+2. Make a random secret (`openssl rand -hex 32`) and set it as `CRON_SECRET` in Vercel **and**
+   as a GitHub repository secret `CRON_SECRET`. The **Push scheduler** workflow then calls
+   `/api/cron/push` every 15 minutes; without the secret it skips.
+3. Redeploy. Send yourself a test: Push notifications → Who gets it: One person → your app
+   username.
+
+Sends are logged in `push_campaigns` (admin pushes, with delivered/failed counts) and
+`push_sends` (one row per nudge per person per day). Tokens Firebase reports as dead
+(uninstalled, signed out) are removed from `app.push_tokens`.
+
 ## Domain
 
 Vercel → stepq → Settings → Domains → add `stepq.in` and `www.stepq.in`, then at the registrar:
