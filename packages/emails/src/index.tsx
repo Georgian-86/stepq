@@ -12,6 +12,7 @@ import {
 } from './AmbassadorApproved';
 import { BackingAlert, backingAlertSubject, type BackingAlertProps } from './BackingAlert';
 import { FounderMessage, founderMessageSubject, type FounderMessageProps } from './FounderMessage';
+import { ParentConsent, parentConsentSubject, type ParentConsentProps } from './ParentConsent';
 import { ReserveLink, reserveLinkSubject, type ReserveLinkProps } from './ReserveLink';
 import {
   TeamApplicationAlert,
@@ -26,6 +27,7 @@ export type TemplateProps = {
   ambassadorAlert: AmbassadorAlertProps;
   backingAlert: BackingAlertProps;
   reserveLink: ReserveLinkProps;
+  parentConsent: ParentConsentProps;
 };
 export type TemplateName = keyof TemplateProps;
 export type Rendered = { subject: string; html: string; text: string };
@@ -56,6 +58,10 @@ const defs: { [K in TemplateName]: Def<TemplateProps[K]> } = {
   reserveLink: {
     subject: reserveLinkSubject,
     element: (p, siteUrl) => <ReserveLink {...p} siteUrl={siteUrl} />,
+  },
+  parentConsent: {
+    subject: parentConsentSubject,
+    element: (p, siteUrl) => <ParentConsent {...p} siteUrl={siteUrl} />,
   },
 };
 

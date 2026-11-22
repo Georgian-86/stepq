@@ -7,4 +7,5 @@ export * from './ambassador';
 export * from './backing';
 export * from './founder';
 export * from './actions';
+export * from './parentConsent';
 export * from './api';

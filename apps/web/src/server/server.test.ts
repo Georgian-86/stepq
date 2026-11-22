@@ -998,4 +998,135 @@ describe.skipIf(!url)('API on Postgres', () => {
       });
     });
   });
+  describe('parental consent', () => {
+    const teen = '00000000-0000-0000-0000-0000000000a1';
+    const adult = '00000000-0000-0000-0000-0000000000a2';
+    const realFetch = globalThis.fetch;
+    beforeAll(async () => {
+      process.env.SUPABASE_URL = 'https://auth.stepq.test';
+      process.env.SUPABASE_ANON_KEY = 'anon';
+      // The few columns the handlers use, as in stepq-app's migrations.
+      await query(`
+        create schema if not exists app;
+        create table if not exists app.profiles (id uuid primary key, display_name text not null, birthdate date);
+        create table if not exists app.parental_consents (
+          child_id uuid primary key references app.profiles (id) on delete cascade,
+          parent_name text not null, parent_email text not null, token_hash text not null unique,
+          status text not null default 'pending', request_count integer not null default 1,
+          requested_at timestamptz not null default now(), responded_at timestamptz,
+          responder_name text, relationship text, responder_birth_year integer,
+          responder_ip_hash text, notice_version text);
+        create table if not exists app.consents (
+          id bigint generated always as identity primary key, user_id uuid not null,
+          purpose text not null, version text not null, granted_at timestamptz not null default now(),
+          withdrawn_at timestamptz);`);
+      // Supabase Auth's /user: the token is the user id.
+      globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const href = String(input);
+        if (!href.startsWith('https://auth.stepq.test/auth/v1/user')) return realFetch(input, init);
+        const token = new Headers(init?.headers).get('authorization')?.replace('Bearer ', '');
+        if (!token?.startsWith('00000000')) return new Response('{}', { status: 401 });
+        return Response.json({ id: token, email: 'teen@stepq.test' });
+      }) as typeof fetch;
+    });
+    afterAll(() => {
+      globalThis.fetch = realFetch;
+    });
+    beforeEach(async () => {
+      await query('truncate app.parental_consents, app.consents, app.profiles cascade');
+      await query(
+        `insert into app.profiles values ($1, 'Aarav Mehta', current_date - interval '15 years'),
+           ($2, 'Riya Sharma', '2001-03-14')`,
+        [teen, adult],
+      );
+    });
+    const ask = (token: string, extra: object = {}) =>
+      api('requestParentConsent', {
+        accessToken: token.padEnd(36, '0').slice(0, 36),
+        parentName: 'Sunita Mehta',
+        parentEmail: 'sunita@gmail.com',
+        ...extra,
+      });
+    const linkToken = async () => {
+      const { rows } = await query<{ props: { consentUrl: string } }>(
+        `select props from stepq.mail where template = 'parentConsent' order by id desc limit 1`,
+      );
+      return new URL(rows[0]!.props.consentUrl).searchParams.get('token')!;
+    };
+    const answer = (token: string, decision: 'grant' | 'decline', extra: object = {}) =>
+      api('respondParentConsent', {
+        token,
+        decision,
+        parentName: 'Sunita Mehta',
+        relationship: 'parent',
+        birthYear: 1985,
+        ...extra,
+      });
+
+    it('emails the parent a one-time link and stores only its hash', async () => {
+      expect(
+        await ok('requestParentConsent', {
+          accessToken: teen,
+          parentName: 'Sunita Mehta',
+          parentEmail: 'Sunita@Gmail.com',
+        }),
+      ).toEqual({ sentTo: 'sunita@gmail.com' });
+      const token = await linkToken();
+      const { rows } = await query<{ token_hash: string; status: string }>(
+        'select token_hash, status from app.parental_consents where child_id = $1',
+        [teen],
+      );
+      expect(rows[0]!.status).toBe('pending');
+      expect(rows[0]!.token_hash).not.toContain(token);
+      expect(await ok('describeParentConsent', { token })).toEqual({
+        childName: 'Aarav',
+        status: 'pending',
+      });
+    });
+
+    it("refuses a bad session, adults, and the teen's own email", async () => {
+      expect((await ask('not-a-user-token-at-all-xxxxxxxx')).body.error.code).toBe(
+        'permission-denied',
+      );
+      expect((await ask(adult)).body.error.code).toBe('failed-precondition');
+      expect((await ask(teen, { parentEmail: 'teen@stepq.test' })).body.error.code).toBe(
+        'invalid-argument',
+      );
+    });
+
+    it('a parent grants consent once, and it is logged for the teen', async () => {
+      await ask(teen);
+      const token = await linkToken();
+      expect(
+        (await answer(token, 'grant', { birthYear: new Date().getFullYear() - 16 })).body.error
+          .details.fields.birthYear,
+      ).toMatch(/adult/);
+      expect(
+        await ok('respondParentConsent', {
+          token,
+          decision: 'grant',
+          parentName: 'Sunita Mehta',
+          relationship: 'parent',
+          birthYear: 1985,
+        }),
+      ).toEqual({ status: 'granted' });
+      expect((await answer(token, 'grant')).body.result).toEqual({ status: 'granted' });
+      expect((await answer(token, 'decline')).body.error.code).toBe('failed-precondition');
+      const { rows } = await query<{ purpose: string }>(
+        'select purpose from app.consents where user_id = $1',
+        [teen],
+      );
+      expect(rows.map((r) => r.purpose)).toEqual(['parental']);
+    });
+
+    it('a parent can decline, and unknown links are not found', async () => {
+      await ask(teen);
+      expect((await answer(await linkToken(), 'decline')).body.result).toEqual({
+        status: 'declined',
+      });
+      expect((await api('describeParentConsent', { token: 'x'.repeat(43) })).body.error.code).toBe(
+        'not-found',
+      );
+    });
+  });
 });

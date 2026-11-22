@@ -132,6 +132,20 @@ create index if not exists site_events_created_at on stepq.site_events (created_
 -- 2026-10-28: country asked on the waitlist form. Nullable: people who joined before have none.
 alter table stepq.waitlist add column if not exists country text;
 
+-- 2026-11-24: which privacy notice each form showed when it was sent (DPDP Act s.5 and s.6).
+-- Added without a default, so earlier rows stay null rather than claiming a notice they never
+-- saw; the default then applies to new rows only. Bump it with POLICY_VERSION in content/legal.ts.
+do $$
+declare t text;
+begin
+  foreach t in array array['waitlist', 'team_applications', 'ambassador_applications', 'backings',
+    'founder_messages']
+  loop
+    execute format('alter table stepq.%I add column if not exists notice_version text', t);
+    execute format('alter table stepq.%I alter column notice_version set default %L', t, '2026-11-24');
+  end loop;
+end $$;
+
 do $$
 declare t text;
 begin

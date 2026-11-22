@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { site, type SiteContent } from '@/content/site';
+import { CountingChoice } from './CountingChoice';
 import { ModalLink } from './ModalLink';
 import { GUTTER, HIT_44, WAITLIST_HREF } from './links';
 import { Wordmark } from './Wordmark';
@@ -75,6 +76,16 @@ export function Footer({ content = site }: { content?: SiteContent }) {
                   Privacy policy
                 </Link>
               </li>
+              <li>
+                <Link href="/terms" className={linkClass}>
+                  Terms of use
+                </Link>
+              </li>
+              <li>
+                <Link href="/grievance" className={linkClass}>
+                  Grievance officer
+                </Link>
+              </li>
             </Column>
             <Column title="Contact">
               <li>
@@ -94,6 +105,7 @@ export function Footer({ content = site }: { content?: SiteContent }) {
         </div>
         <div className="type-web-small flex flex-col gap-s border-t border-line pt-[20px] text-muted md:flex-row md:justify-between">
           <p>© 2026 StepQ. Made in India.</p>
+          <CountingChoice />
         </div>
       </div>
     </footer>

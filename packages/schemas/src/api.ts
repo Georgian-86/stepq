@@ -2,6 +2,7 @@ import type { ActionKind } from './actions';
 import type { AmbassadorInput } from './ambassador';
 import type { BackingInput } from './backing';
 import type { FounderMessageInput } from './founder';
+import type { RequestParentConsentInput, RespondParentConsentInput } from './parentConsent';
 import type { TeamApplicationInput } from './team';
 import type { WaitlistInput } from './waitlist';
 
@@ -27,6 +28,15 @@ export interface Api {
     out: { kind: ActionKind; summary: string; done: boolean };
   };
   confirmAction: { in: { token: string }; out: { done: true } };
+  requestParentConsent: { in: RequestParentConsentInput; out: { sentTo: string } };
+  describeParentConsent: {
+    in: { token: string };
+    out: { childName: string; status: 'pending' | 'granted' | 'declined' | 'withdrawn' };
+  };
+  respondParentConsent: {
+    in: RespondParentConsentInput;
+    out: { status: 'granted' | 'declined' };
+  };
 }
 
 export type ApiName = keyof Api;

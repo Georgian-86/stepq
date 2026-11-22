@@ -33,6 +33,11 @@ describe('Footer', () => {
       'href',
       'mailto:connect@stepq.in',
     );
+    expect(screen.getByRole('link', { name: 'Terms of use' })).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', { name: 'Grievance officer' })).toHaveAttribute(
+      'href',
+      '/grievance',
+    );
     expect(screen.getByText('Chalo, chalte hain.')).toBeInTheDocument();
     expect(screen.getByText('© 2026 StepQ. Made in India.')).toBeInTheDocument();
   });

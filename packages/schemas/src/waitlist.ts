@@ -3,7 +3,11 @@ import { COUNTRIES } from './countries';
 import { email, honeypot, personName, requestId } from './fields';
 
 export const GENDERS = ['female', 'male', 'non_binary', 'prefer_not'] as const;
-export const AGE_GROUPS = ['under_18', '18_24', '25_34', '35_44', '45_60', '60_plus'] as const;
+/**
+ * StepQ is 18+: the DPDP Act treats anyone under 18 as a child, whose data needs verifiable
+ * parental consent, so the waitlist no longer offers "Under 18". Rows from before keep the value.
+ */
+export const AGE_GROUPS = ['18_24', '25_34', '35_44', '45_60', '60_plus'] as const;
 
 export const GENDER_LABELS: Record<(typeof GENDERS)[number], string> = {
   female: 'Female',
@@ -13,7 +17,6 @@ export const GENDER_LABELS: Record<(typeof GENDERS)[number], string> = {
 };
 
 export const AGE_LABELS: Record<(typeof AGE_GROUPS)[number], string> = {
-  under_18: 'Under 18',
   '18_24': '18–24',
   '25_34': '25–34',
   '35_44': '35–44',

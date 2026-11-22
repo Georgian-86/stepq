@@ -4,7 +4,33 @@ import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { PREVIEW_MODE } from '@/lib/preview';
 
+const OPT_OUT_KEY = 'stepq.noCount';
+
+/**
+ * False when this browser asked not to be counted: the footer's "Turn it off", Global Privacy
+ * Control, or Do Not Track.
+ */
+export function countingAllowed(): boolean {
+  try {
+    if (window.localStorage.getItem(OPT_OUT_KEY) === '1') return false;
+  } catch {
+    // Storage blocked: fall through to the browser signals.
+  }
+  const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
+  return !(nav.globalPrivacyControl === true || nav.doNotTrack === '1');
+}
+
+export function setCountingOptOut(optOut: boolean) {
+  try {
+    if (optOut) window.localStorage.setItem(OPT_OUT_KEY, '1');
+    else window.localStorage.removeItem(OPT_OUT_KEY);
+  } catch {
+    // Storage blocked: nothing to remember.
+  }
+}
+
 function send(event: { kind: 'view' | 'click'; path: string; label?: string; referrer?: string }) {
+  if (!countingAllowed()) return;
   const body = JSON.stringify(event);
   try {
     if (navigator.sendBeacon?.('/api/track', new Blob([body], { type: 'application/json' }))) {
@@ -26,7 +52,8 @@ function labelOf(el: HTMLElement): string {
 
 /**
  * Anonymous page views and link / button clicks for the admin Stats page (see /api/track):
- * no cookies, no identifiers. Off in preview builds, which have no backend.
+ * no cookies, no identifiers. Off in preview builds, which have no backend, and for anyone who
+ * opted out (see countingAllowed).
  */
 export function Tracker() {
   const path = usePathname();
