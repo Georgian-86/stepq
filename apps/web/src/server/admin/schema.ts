@@ -394,4 +394,32 @@ begin
     end if;
   end loop;
 end $$;
+
+-- Parents' answers to parental consent requests (DPDP Act s.9) live in the app's schema, in
+-- app.parental_consents (stepq-app's migrations), which the stepq.in server writes. Admins read
+-- them through this view. It runs with the reader's own rights (security_invoker), so the
+-- table's RLS decides what they see: its admins_read policy lets admins see every row, and a
+-- teen still sees only their own. The link's hash and the parent's IP hash are never granted,
+-- so they can't be read or shown. Skipped until the app's migration has created the table.
+do $$
+begin
+  if to_regclass('app.parental_consents') is null then
+    return;
+  end if;
+  grant usage on schema app to authenticated;
+  grant select (child_id, parent_name, parent_email, status, request_count, requested_at,
+    responded_at, responder_name, relationship, responder_birth_year, notice_version)
+    on app.parental_consents to authenticated;
+  alter table app.parental_consents enable row level security;
+  drop policy if exists admins_read on app.parental_consents;
+  create policy admins_read on app.parental_consents for select to authenticated
+    using ((select stepq.is_admin()));
+  create or replace view stepq.parental_consents with (security_invoker = true) as
+    select child_id as user_id, status, parent_name, parent_email, relationship,
+      responder_name, responder_birth_year, request_count, requested_at as created_at,
+      responded_at, notice_version
+    from app.parental_consents;
+  revoke all on stepq.parental_consents from public;
+  grant select on stepq.parental_consents to authenticated;
+end $$;
 `;

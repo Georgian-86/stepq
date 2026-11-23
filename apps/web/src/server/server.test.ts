@@ -29,6 +29,7 @@ const {
   addAdmin,
   asAdmin,
   asUser,
+  countRows,
   deleteAdmin,
   isAdmin,
   listTables,
@@ -1117,6 +1118,41 @@ describe.skipIf(!url)('API on Postgres', () => {
         [teen],
       );
       expect(rows.map((r) => r.purpose)).toEqual(['parental']);
+    });
+
+    it("admins read parents' answers on the dashboard, without the link's hash", async () => {
+      await ask(teen);
+      await answer(await linkToken(), 'grant');
+      // The view is made once the app's table exists (next server start).
+      await query((await import('./admin/schema')).ADMIN_SQL);
+      const admin = { id: randomUUID(), email: 'consent-admin@stepq.in' };
+      const stranger = { id: randomUUID(), email: 'someone@gmail.com' };
+      await query('insert into stepq.admins (user_id, email) values ($1, $2)', [
+        admin.id,
+        admin.email,
+      ]);
+      try {
+        const tables = await asUser(admin, listTables);
+        expect(tables.find((t) => t.name === 'parental_consents')).toMatchObject({
+          label: 'Parental consent',
+          count: 1,
+        });
+        const page = await asUser(admin, (c) => readTable(c, 'parental_consents'));
+        const names = page.columns.map((col) => col.name);
+        expect(names).not.toContain('token_hash');
+        expect(names).not.toContain('responder_ip_hash');
+        expect(page.ids).toEqual([teen]);
+        expect(page.rows[0]![names.indexOf('status')]).toBe('granted');
+        expect(page.rows[0]![names.indexOf('responder_name')]).toBe('Sunita Mehta');
+        // Not through the view's back door either.
+        await expect(
+          asUser(admin, (c) => c.query('select token_hash from app.parental_consents')),
+        ).rejects.toThrow(/permission denied/);
+        // A signed-in non-admin sees no rows.
+        expect(await asUser(stranger, (c) => countRows(c, 'parental_consents'))).toBe(0);
+      } finally {
+        await query('delete from stepq.admins where user_id = $1', [admin.id]);
+      }
     });
 
     it('a parent can decline, and unknown links are not found', async () => {

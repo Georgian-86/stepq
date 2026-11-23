@@ -25,7 +25,10 @@ export function ensureAdminSchema(): Promise<void> {
                where p.schemaname = 'stepq' and p.tablename = t.tablename
                  and p.policyname = 'admins_read'
              )
-           ) as ok`,
+           )
+           -- The app's parental consent table appeared after the admin SQL last ran.
+           and (to_regclass('app.parental_consents') is null
+             or to_regclass('stepq.parental_consents') is not null) as ok`,
         [ADMIN_MARK],
       );
       return rows[0]!.ok;
@@ -91,11 +94,11 @@ const ORDER = Object.keys(TABLES);
 export type TableInfo = { name: string; label: string; count: number; internal: boolean };
 export type Column = { name: string; type: string };
 
-/** Every table the user may read in `stepq`, with row counts (as RLS lets them see), in one query. */
+/** Every table (and view) the user may read in `stepq`, with row counts (as RLS lets them see), in one query. */
 export async function listTables(c: Client): Promise<TableInfo[]> {
   const { rows } = await c.query<{ name: string }>(
     `select c.relname as name from pg_class c join pg_namespace n on n.oid = c.relnamespace
-     where n.nspname = 'stepq' and c.relkind in ('r', 'p') and has_table_privilege(c.oid, 'select')`,
+     where n.nspname = 'stepq' and c.relkind in ('r', 'p', 'v') and has_table_privilege(c.oid, 'select')`,
   );
   if (!rows.length) return [];
   const { rows: counts } = await c.query<{ name: string; n: string }>(
@@ -553,7 +556,7 @@ export async function readOverview(
   const { rows: withDates } = await c.query<{ name: string }>(
     `select t.relname as name from pg_class t join pg_namespace n on n.oid = t.relnamespace
      join pg_attribute a on a.attrelid = t.oid and a.attname = 'created_at' and not a.attisdropped
-     where n.nspname = 'stepq' and t.relkind in ('r', 'p')`,
+     where n.nspname = 'stepq' and t.relkind in ('r', 'p', 'v')`,
   );
   const dated = withDates
     .map((r) => r.name)
