@@ -3,9 +3,10 @@
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
-import type { LogEntry, Member, PlanFeature, ProChallenge } from '@/server/admin/pro';
+import type { LogEntry, Member, PendingPost, PlanFeature, ProChallenge } from '@/server/admin/pro';
 import {
   postQRunAction,
+  reviewPostAction,
   setChallengeProOnlyAction,
   setFeatureAction,
   setMemberAction,
@@ -33,9 +34,11 @@ function Result({ state }: { state: ProState }) {
 export function ProBadge() {
   return (
     <span
-      className={`${gold} inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] font-bold tracking-wider text-ink`}
+      title="StepQ Pro"
+      aria-label="StepQ Pro"
+      className={`${gold} inline-flex size-5 items-center justify-center rounded-full text-[12px] leading-none text-ink`}
     >
-      ♛ PRO
+      ♛
     </span>
   );
 }
@@ -420,6 +423,96 @@ export function ChangeLog({ log }: { log: LogEntry[] }) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function PendingRow({
+  p,
+  action,
+  pending,
+}: {
+  p: PendingPost;
+  action: (form: FormData) => void;
+  pending: boolean;
+}) {
+  return (
+    <li className="flex flex-wrap items-start gap-3 py-3 edge-b">
+      <div className="min-w-[220px] flex-1">
+        <div className="type-web-body-strong flex items-center gap-2">
+          {p.name} {p.plan === 'pro' && <ProBadge />}
+          <span className="type-web-small font-normal text-muted">
+            @{p.username} ·{' '}
+            {new Date(p.createdAt).toLocaleString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}
+          </span>
+        </div>
+        {p.kind === 'achievement' && (
+          <div className="type-web-small mt-1 text-deep">
+            Shares today&apos;s steps: {(p.steps ?? 0).toLocaleString('en-IN')}
+          </div>
+        )}
+        {p.body && <p className="type-web-body mt-1 whitespace-pre-wrap break-words">{p.body}</p>}
+      </div>
+      <div className="flex gap-2">
+        <form action={action}>
+          <input type="hidden" name="id" value={p.id} />
+          <input type="hidden" name="decision" value="approve" />
+          <button
+            type="submit"
+            disabled={pending}
+            className="type-web-small rounded-pill bg-deep px-4 py-2 font-bold text-white"
+          >
+            Approve
+          </button>
+        </form>
+        <form action={action}>
+          <input type="hidden" name="id" value={p.id} />
+          <input type="hidden" name="decision" value="reject" />
+          <button
+            type="submit"
+            disabled={pending}
+            className="type-web-small rounded-pill px-3 py-2 font-bold text-tomato-text hover:bg-tomato-soft"
+          >
+            Reject
+          </button>
+        </form>
+      </div>
+    </li>
+  );
+}
+
+export function PostQueue({ posts }: { posts: PendingPost[] | null }) {
+  // One state for the whole queue: a reviewed post leaves the list on refresh, so its row (and
+  // any message kept in it) unmounts. The message lives here instead.
+  const [state, action, pending] = useActionState<ProState, FormData>(reviewPostAction, {});
+  return (
+    <section className="rounded-card bg-white p-5 shadow-card">
+      <h2 className="type-app-subheading mb-1">
+        Posts waiting for approval{posts && posts.length > 0 ? ` (${posts.length})` : ''}
+      </h2>
+      <p className="type-web-small mb-2 text-muted">
+        New Community posts go live only after you approve them. Until then only the author sees
+        them. Replies don&apos;t wait.
+      </p>
+      <Result state={state} />
+      {posts === null ? (
+        <p className="type-web-small py-2 text-muted">
+          Run <code>20261127100000_pro_tier_round2.sql</code> to turn on post approval.
+        </p>
+      ) : (
+        <ul>
+          {posts.map((p) => (
+            <PendingRow key={p.id} p={p} action={action} pending={pending} />
+          ))}
+          {posts.length === 0 && (
+            <li className="type-web-small py-4 text-muted">Nothing waiting. All caught up.</li>
+          )}
+        </ul>
+      )}
     </section>
   );
 }
