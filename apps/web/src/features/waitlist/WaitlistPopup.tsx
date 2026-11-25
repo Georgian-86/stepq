@@ -18,6 +18,8 @@ const QUIET_PATHS = [
   /^\/privacy/,
   /^\/terms/,
   /^\/grievance/,
+  /^\/cookies/,
+  /^\/delete-account/,
   /^\/parent-consent/,
   /\/sent$/,
   /\/thank-you$/,

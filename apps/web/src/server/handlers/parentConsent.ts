@@ -27,6 +27,8 @@ import { parseOrThrow } from '../validate';
  */
 
 const notFound = () => new ApiError('not-found', 'This link is no longer valid.');
+/** A consent link works for 7 days, matching how long an unconsented teen account is kept. */
+const LINK_DAYS = 7;
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 
 type Status = 'pending' | 'granted' | 'declined' | 'withdrawn';
@@ -110,8 +112,9 @@ export async function describeParentConsent(
   await ensureTable();
   const { rows } = await query<{ display_name: string; status: Status }>(
     `select p.display_name, c.status from app.parental_consents c
-     join app.profiles p on p.id = c.child_id where c.token_hash = $1`,
-    [hash(token)],
+     join app.profiles p on p.id = c.child_id
+     where c.token_hash = $1 and c.requested_at > now() - make_interval(days => $2)`,
+    [hash(token), LINK_DAYS],
   );
   const row = rows[0];
   if (!row) throw notFound();
@@ -128,8 +131,9 @@ export async function respondParentConsent(
   const status = input.decision === 'grant' ? 'granted' : 'declined';
   return transaction(async (c) => {
     const { rows } = await c.query<{ child_id: string; status: Status }>(
-      'select child_id, status from app.parental_consents where token_hash = $1 for update',
-      [hash(input.token)],
+      `select child_id, status from app.parental_consents
+       where token_hash = $1 and requested_at > now() - make_interval(days => $2) for update`,
+      [hash(input.token), LINK_DAYS],
     );
     const row = rows[0];
     if (!row) throw notFound();

@@ -78,9 +78,13 @@ Friend requests, groups, challenges and QRuns (group walks) you create or join, 
 
 What you post, reply, like, repost and report in the community, and the people you block.
 
+### StepQ Pro and your profile photo
+
+Your plan (Free or Pro), when it started, and counts of what the plan limits (community posts this month, streak restores). If you are on Pro you can add a **profile photo**: the app shrinks it to a small square on your phone, which also removes its location and camera details, and stores it in a private store that only you, your friends and the people in your groups can see. Removing the photo, moving to Free or deleting your account deletes it. Your theme and the friend you pin as your BFF are kept with your profile.
+
 ### Contacts (only if you tap "Find contacts")
 
-To find friends already on StepQ, the app turns the email addresses in your phone's contacts into one-way hashes **on your phone** and sends only the hashes to match against StepQ accounts. Neither your contacts' addresses nor their hashes are stored.
+To find friends already on StepQ, the app turns the email addresses in your phone's contacts into one-way hashes **on your phone** and sends only the hashes to match against StepQ accounts. Neither your contacts' addresses nor their hashes are stored. To stop anyone using this to look up strangers, we keep only when you checked and how many contacts were checked, for 30 days.
 
 ### Location (only on the QRun tab, if you allow it)
 
@@ -88,7 +92,7 @@ A rough, city-block level location to show QRuns near you and the name of your a
 
 ### Notifications and crashes
 
-If you allow notifications, a device token from Firebase Cloud Messaging so we can send them. If the app crashes, a crash report from Firebase Crashlytics with the device model, Android version and what went wrong.
+If you allow notifications, a device token from Firebase Cloud Messaging so we can send them. If the app crashes while you are signed in, a crash report from Firebase Crashlytics with the device model, Android version and what went wrong. Nothing is sent to Firebase before you sign up and agree to this policy.
 
 # Who can see your activity
 
@@ -110,9 +114,11 @@ Each form says what it is for before you send it. To stop abuse we keep a one-wa
 
 We do **not** use advertising or tracking cookies, and no third-party scripts track you here. The site uses:
 
-- your browser's session storage, to remember a form you just sent (cleared when you close the tab), and local storage, to remember that you dismissed the waitlist pop-up or the privacy notice;
-- one sign-in cookie, only for StepQ admins on /admin;
-- anonymous counting of page visits and button or link clicks (the page, what was clicked and the site that linked here), with no cookie and nothing that identifies you. You can turn it off with "Don't count my visits" in the notice at the bottom of the page, and we skip it when your browser sends Global Privacy Control or Do Not Track.
+- your browser's session storage, to remember a form you just sent (cleared when you close the tab), and local storage, only to remember that you turned visit counting off;
+- two sign-in cookies, only for StepQ admins and only on /admin;
+- anonymous counting of page visits and button or link clicks (the page, what was clicked and the site that linked here), with no cookie and nothing that identifies you. You can turn it off with "Turn it off" at the bottom of every page, and we skip it when your browser sends Global Privacy Control or Do Not Track.
+
+Each item, how long it lasts and how to remove it is listed in our [Cookie policy](/cookies). Because we only use what is strictly needed, we don't show a cookie banner.
 
 # Why we use it, and on what basis
 
@@ -149,6 +155,8 @@ We keep personal data only as long as the purpose needs it, then delete it:
 - **Accounts waiting for a parent's consent:** deleted after 7 days if no parent agrees, or straight away if they say no.
 - **App account, profile, steps and activity:** while you have an account. If you delete your account, it is deleted straight away from the live database, and from backups within 30 days. As the IT Rules 2021 (rule 3(1)(h)) require, we keep only your email, name and username for 180 days after deletion, then delete them.
 - **Inactive app accounts:** if you do not open StepQ for 3 years, we will email you, and delete your account if you do not sign in within 48 hours of that notice.
+- **Profile photo:** until you remove it, move to Free or delete your account.
+- **Contact checks:** the time and number of contacts checked, 30 days.
 - **Community posts:** until you delete them or your account. Posts we remove for breaking the rules, and the reports about them, are kept for 180 days for any investigation, then deleted.
 - **Waitlist:** until 6 months after StepQ launches, or sooner if you ask to leave.
 - **Job and ambassador applications:** 1 year after we decide, unless you join us.
@@ -163,7 +171,7 @@ Under the DPDP Act you have the right to:
 
 - **Access:** get a summary of your data and how it is used. In the app, Profile → Privacy and data → **Download my data** gives you a copy of everything we hold about your account.
 - **Correction and completion:** fix your name, username, avatar and goal in the app, or ask us to correct anything else.
-- **Erasure:** delete your account in the app (Profile → Account → Delete account), or ask us to delete website submissions.
+- **Erasure:** delete your account in the app (Profile → Account → Delete account). If you no longer have the app, see [/delete-account](/delete-account). You can also ask us to delete website submissions.
 - **Withdraw consent:** as easily as you gave it. Stop StepQ reading your steps, contacts or location at any time in your phone's settings (Apps → StepQ → Permissions) or in Health Connect; withdrawing consent to everything means deleting your account. Withdrawing does not affect what was done before.
 - **Nominate** someone to exercise these rights for you if you die or become unable to.
 - **Grievance redressal:** complain to our Grievance Officer, and then to the **Data Protection Board of India** if you are not satisfied.
@@ -186,7 +194,7 @@ The website's forms are for adults only. If you think a child has given us their
 
 # Security and breaches
 
-Data is encrypted in transit (HTTPS) and at rest by our providers. Access is limited by row-level security, so each person can only reach their own data and what others choose to share, and only named admins can see the admin dashboard. If a personal data breach happens, we will tell the Data Protection Board of India and every affected person without delay, with what happened, the likely impact and what we are doing about it, as section 8(6) of the DPDP Act and rule 7 of the DPDP Rules require.
+Data is encrypted in transit (HTTPS/TLS) and at rest (AES-256) by our providers. On your phone, the app's sign-in keys are encrypted with a key held in Android's secure Keystore, emailed sign-in links only work on the phone that asked for them, and the app's data is excluded from cloud backups. Passwords are stored only as one-way hashes. Profile photos are in a private store, never at a public link. Access is limited by row-level security, so each person can only reach their own data and what others choose to share, and only named admins can see the admin dashboard. If a personal data breach happens, we will tell the Data Protection Board of India and every affected person without delay, with what happened, the likely impact and what we are doing about it, as section 8(6) of the DPDP Act and rule 7 of the DPDP Rules require.
 
 # Grievance Officer
 
@@ -249,11 +257,11 @@ QRuns are walks people organise. StepQ is not the organiser unless the QRun says
 
 # Pro and payments
 
-If StepQ offers paid features, the price and terms will be shown before you pay. Backings through "Fund StepQ" are voluntary support and are not an investment, a donation with tax benefits, or a purchase.
+StepQ Pro is a plan with extra features and higher limits; what each plan includes is shown in the app. For now StepQ gives Pro to members itself, and nothing is sold in the app. If we start charging, the price and terms will be shown before you pay, and payments in the Android app will go through Google Play. Backings through "Fund StepQ" are voluntary support and are not an investment, a donation with tax benefits, or a purchase.
 
 # Ending your account
 
-You can delete your account at any time in the app (Profile → Account → Delete account). We may close accounts that break these terms; where we can, we will tell you why.
+You can delete your account at any time in the app (Profile → Account → Delete account), or as described at [/delete-account](/delete-account). We may close accounts that break these terms; where we can, we will tell you why.
 
 # Liability
 
@@ -305,4 +313,78 @@ You can also send privacy requests from the [Connect with the founder](/?modal=f
 - **Within 15 days:** we resolve your complaint and tell you what we did, as the IT Rules require. For personal data requests we reply within 30 days at the latest (the DPDP Rules allow up to 90).
 
 If you are not satisfied with our answer, you can complain to the **Data Protection Board of India** about personal data, or appeal content decisions to the Grievance Appellate Committee set up under the IT Rules (gac.gov.in).
+`;
+
+/** /cookies: every cookie and browser storage item stepq.in uses. */
+export const COOKIE_POLICY = `
+# Summary
+
+stepq.in uses **no advertising, analytics or tracking cookies** and loads no third-party trackers. The only cookies are for StepQ admins signing in to /admin. A few items are kept in your browser's own storage so the site works as you expect. All of them are strictly necessary or are a choice you made, so we don't need to ask before setting them, and we don't show a cookie banner. Last updated ${POLICY_DATE}.
+
+# Cookies
+
+### stepq_admin_at and stepq_admin_rt
+
+- **What:** the sign-in for StepQ admins (an access token and a refresh token from Supabase Auth).
+- **Where:** only on stepq.in/admin, and only after an admin signs in. Visitors to the rest of the site never get them.
+- **How long:** 7 days from the last visit, or until the admin signs out.
+- **Protection:** HttpOnly (page scripts can't read them), Secure (HTTPS only) and SameSite=Lax.
+
+# Browser storage (not cookies)
+
+### stepq.noCount (local storage)
+
+- **What:** remembers that you turned off anonymous visit counting with "Turn it off" at the bottom of the page.
+- **How long:** until you turn counting back on or clear your browser's site data.
+
+### Form confirmations (session storage)
+
+- **What:** after you send a waitlist or job application form, your place in the queue or the email we'll reply to, so the confirmation page can show it without putting it in the link.
+- **How long:** until you close the tab.
+
+# Anonymous visit counting
+
+We count page views and clicks on links and buttons to see which pages help people. This uses no cookie or storage, and keeps only the page, what was clicked and the website that linked here, never your IP address or anything that identifies you. It's off when your browser sends Global Privacy Control or Do Not Track, or when you turn it off at the bottom of any page.
+
+# The StepQ app
+
+The Android app keeps your sign-in on your phone, encrypted with a key in Android's Keystore, and never backs it up to the cloud. What the app collects is in our [Privacy policy](/privacy).
+
+# Removing them
+
+Signing out of /admin removes the admin cookies. You can delete all of stepq.in's cookies and storage in your browser's settings (usually Settings → Privacy → Site data). Questions: ${mail(CONTACT_EMAIL)}.
+`;
+
+/** /delete-account: how to delete a StepQ account and its data (Google Play asks for this page). */
+export const DELETE_ACCOUNT = `
+# Delete in the app
+
+1. Open StepQ and go to **Profile → Account**.
+2. Tap **Delete account**, type DELETE and confirm.
+
+Your account is deleted straight away. You don't need to email us.
+
+# No longer have the app?
+
+Email ${mail(CONTACT_EMAIL)} **from the email address you use for StepQ**, with the subject "Delete my StepQ account". We may ask you to confirm the request from that address, so that nobody else can delete your account. We delete it within 7 days and email you when it's done.
+
+# What is deleted
+
+- Your account, profile, avatar and profile photo.
+- Your daily steps, goals, streaks, StepQ score and Pro plan.
+- Friends, friend requests, water reminders and step shares.
+- Groups you are in (a group you created passes to another member), QRuns and challenge entries.
+- Community posts, replies, likes, reposts, reports and blocks.
+- Consent records and the phone's notification token.
+
+Backups that may still hold your data are overwritten within 30 days.
+
+# What is kept, and for how long
+
+- **Your email, name and username, for 180 days,** as the IT Rules 2021 (rule 3(1)(h)) require, then deleted.
+- Community posts removed for breaking the rules, and reports about them, for 180 days for any investigation.
+
+# Website forms
+
+To delete something you sent through stepq.in (waitlist, job or ambassador application, a message), email ${mail(CONTACT_EMAIL)} from the address you used, saying which form. See our [Privacy policy](/privacy) for details.
 `;

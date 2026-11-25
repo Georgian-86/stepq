@@ -38,8 +38,13 @@ describe('Footer', () => {
       'href',
       '/grievance',
     );
+    expect(screen.getByRole('link', { name: 'Cookie policy' })).toHaveAttribute('href', '/cookies');
+    expect(screen.getByRole('link', { name: 'Delete your account' })).toHaveAttribute(
+      'href',
+      '/delete-account',
+    );
     expect(screen.getByText('Chalo, chalte hain.')).toBeInTheDocument();
-    expect(screen.getByText('© 2026 StepQ. Made in India.')).toBeInTheDocument();
+    expect(screen.getByText(/© 2026 StepQ\. Made in India\./)).toBeInTheDocument();
   });
 
   it('gives every footer link and the wordmark a hit area of at least 44 px without changing layout', () => {

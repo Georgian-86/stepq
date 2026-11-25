@@ -104,7 +104,16 @@ export function Footer({ content = site }: { content?: SiteContent }) {
           </div>
         </div>
         <div className="type-web-small flex flex-col gap-s border-t border-line pt-[20px] text-muted md:flex-row md:justify-between">
-          <p>© 2026 StepQ. Made in India.</p>
+          <p>
+            © 2026 StepQ. Made in India.{' '}
+            <Link href="/cookies" className="text-deep underline">
+              Cookie policy
+            </Link>
+            {' · '}
+            <Link href="/delete-account" className="text-deep underline">
+              Delete your account
+            </Link>
+          </p>
           <CountingChoice />
         </div>
       </div>

@@ -1164,5 +1164,16 @@ describe.skipIf(!url)('API on Postgres', () => {
         'not-found',
       );
     });
+
+    it('a link stops working after 7 days', async () => {
+      await ask(teen);
+      const token = await linkToken();
+      await query(
+        `update app.parental_consents set requested_at = now() - interval '8 days' where child_id = $1`,
+        [teen],
+      );
+      expect((await api('describeParentConsent', { token })).body.error.code).toBe('not-found');
+      expect((await answer(token, 'grant')).body.error.code).toBe('not-found');
+    });
   });
 });
