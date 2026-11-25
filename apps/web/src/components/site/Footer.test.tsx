@@ -58,7 +58,12 @@ describe('Footer', () => {
     );
     const links = within(screen.getByRole('contentinfo')).getAllByRole('link');
     for (const link of links) {
-      if (link.getAttribute('aria-label') === 'StepQ home') {
+      // The wordmark and the small legal links in the bottom line keep their text size and
+      // get a 44 px tall pseudo-element target instead.
+      if (
+        link.getAttribute('aria-label') === 'StepQ home' ||
+        ['/cookies', '/delete-account'].includes(link.getAttribute('href') ?? '')
+      ) {
         expect(link.className).toContain('after:h-[44px]');
       } else {
         // 40 px tall per Figma; the pseudo-element extends the target 2 px above and below.

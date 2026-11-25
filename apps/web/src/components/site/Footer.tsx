@@ -106,11 +106,11 @@ export function Footer({ content = site }: { content?: SiteContent }) {
         <div className="type-web-small flex flex-col gap-s border-t border-line pt-[20px] text-muted md:flex-row md:justify-between">
           <p>
             © 2026 StepQ. Made in India.{' '}
-            <Link href="/cookies" className="text-deep underline">
+            <Link href="/cookies" className={`text-deep underline ${HIT_44}`}>
               Cookie policy
             </Link>
             {' · '}
-            <Link href="/delete-account" className="text-deep underline">
+            <Link href="/delete-account" className={`text-deep underline ${HIT_44}`}>
               Delete your account
             </Link>
           </p>
