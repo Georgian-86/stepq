@@ -42,7 +42,20 @@ export type ProData =
       counts: { pro: number; free: number; hosts: number };
       challenges: ProChallenge[];
       log: LogEntry[];
+      /** New Community posts waiting for review; null before the round 2 migration. */
+      pending: PendingPost[] | null;
     };
+
+export type PendingPost = {
+  id: string;
+  body: string;
+  kind: string;
+  steps: number | null;
+  createdAt: string;
+  name: string;
+  username: string;
+  plan: string;
+};
 
 export const MEMBER_FILTERS = ['all', 'pro', 'free', 'hosts', 'requests'] as const;
 export type MemberFilter = (typeof MEMBER_FILTERS)[number];
@@ -94,6 +107,19 @@ export async function readPro(
     `select id, title, ends_at as "endsAt", pro_only as "proOnly" from app.challenges
       where ends_at > now() order by ends_at limit 30`,
   );
+  const approval = await c.query<{ ok: boolean }>(
+    `select to_regprocedure('app.admin_review_post(uuid, boolean)') is not null as ok`,
+  );
+  const pending = approval.rows[0]?.ok
+    ? (
+        await c.query<PendingPost>(
+          `select p.id, p.body, p.kind, p.steps, p.created_at as "createdAt",
+                  a.display_name as name, a.username, a.plan
+             from app.posts p join app.profiles a on a.id = p.author
+            where p.status = 'pending' order by p.created_at limit 50`,
+        )
+      ).rows
+    : null;
   const log = await c
     .query<LogEntry>(
       `select l.at, a.email as admin, l.action, concat_ws(' · ', l.target, nullif(l.detail::text, '{}')) as detail
@@ -110,6 +136,7 @@ export async function readPro(
     counts: { pro: Number(n?.pro ?? 0), free: Number(n?.free ?? 0), hosts: Number(n?.hosts ?? 0) },
     challenges: challenges.rows,
     log: log.rows,
+    pending,
   };
 }
 
@@ -177,4 +204,8 @@ export async function setChallengeProOnly(c: Client, id: string, proOnly: boolea
   await c
     .query('select app.admin_set_challenge_pro_only($1::uuid, $2)', [id, proOnly])
     .catch(proError);
+}
+
+export async function reviewPost(c: Client, id: string, approve: boolean) {
+  await c.query('select app.admin_review_post($1::uuid, $2)', [id, approve]).catch(proError);
 }

@@ -8,6 +8,7 @@ import {
   LimitsEditor,
   Members,
   OfficialQRun,
+  PostQueue,
   ProBadge,
   ProChallenges,
 } from '../../ProPanel';
@@ -65,6 +66,7 @@ export default async function ProPage({ searchParams }: { searchParams: Promise<
         </section>
       ) : (
         <>
+          <PostQueue posts={data.pending} />
           <LimitsEditor features={data.features} />
           <Members
             members={data.members}

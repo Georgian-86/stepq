@@ -5,6 +5,7 @@ import { asUser } from '@/server/admin/data';
 import {
   parseLimit,
   postOfficialQRun,
+  reviewPost,
   setChallengeProOnly,
   setFeature,
   setMember,
@@ -115,5 +116,17 @@ export async function setChallengeProOnlyAction(
     'challenge pro only',
     (c) => setChallengeProOnly(c, id, proOnly),
     proOnly ? 'Pro members only.' : 'Open to everyone.',
+  );
+}
+
+/** Approves a waiting Community post (it goes to the top of the feed) or rejects it. */
+export async function reviewPostAction(_prev: ProState, form: FormData): Promise<ProState> {
+  const id = String(form.get('id') ?? '');
+  if (!UUID.test(id)) return { error: 'Pick a post.' };
+  const approve = form.get('decision') === 'approve';
+  return run(
+    'review post',
+    (c) => reviewPost(c, id, approve),
+    approve ? 'Approved. It is live in the feed.' : 'Rejected. Only its author sees it.',
   );
 }
