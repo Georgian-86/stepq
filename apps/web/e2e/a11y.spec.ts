@@ -204,7 +204,8 @@ test.describe('keyboard only', () => {
       'true',
     );
     await page.keyboard.press('Tab');
-    await page.keyboard.press('ArrowRight'); // 18–24
+    await page.keyboard.press('ArrowRight'); // 25–34
+    await page.keyboard.press('ArrowLeft'); // 18–24
     await expect(card.getByRole('radio', { name: '18–24' })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -216,6 +217,9 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('ArrowDown'); // United Kingdom
     await page.keyboard.press('Enter');
     await expect(card.getByRole('combobox', { name: 'Country' })).toHaveValue('United Kingdom');
+    // The privacy notice's link comes before the button.
+    await page.keyboard.press('Tab');
+    await expect(card.getByRole('link', { name: 'Privacy policy' })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(card.getByRole('button', { name: 'Join the waitlist' })).toBeFocused();
     await page.keyboard.press('Enter');
@@ -267,6 +271,9 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('Tab');
     await expect(modal.getByLabel('Message')).toBeFocused();
     await page.keyboard.type('Can we talk about a college partnership?');
+    // The privacy notice's link comes before the send button.
+    await page.keyboard.press('Tab');
+    await expect(modal.getByRole('link', { name: 'Privacy policy' })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(modal.getByRole('button', { name: 'Send to the founder' })).toBeFocused();
     await page.keyboard.press('Enter');

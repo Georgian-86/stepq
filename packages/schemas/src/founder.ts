@@ -1,7 +1,14 @@
 import { z } from 'zod';
 import { email, honeypot, optionalPhone, personName, requestId } from './fields';
 
-export const TOPICS = ['partnership', 'investment', 'feedback', 'press', 'other'] as const;
+export const TOPICS = [
+  'partnership',
+  'investment',
+  'feedback',
+  'press',
+  'privacy',
+  'other',
+] as const;
 
 /** Chip labels (W16) and email labels for `topic`. */
 export const TOPIC_LABELS: Record<(typeof TOPICS)[number], string> = {
@@ -9,6 +16,7 @@ export const TOPIC_LABELS: Record<(typeof TOPICS)[number], string> = {
   investment: 'Investment',
   feedback: 'Feedback',
   press: 'Press',
+  privacy: 'Privacy or data request',
   other: 'Other',
 };
 

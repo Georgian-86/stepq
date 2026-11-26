@@ -13,6 +13,7 @@ import { openModalParam } from '@/lib/useModalParam';
 import { useZodForm } from '@/lib/useZodForm';
 import { waitlistSource } from './source';
 import { useWaitlist } from './WaitlistState';
+import { FormPrivacyNote } from '@/components/site/FormPrivacyNote';
 
 const genderOptions = GENDERS.map((value) => ({ value, label: GENDER_LABELS[value] }));
 const ageOptions = AGE_GROUPS.map((value) => ({ value, label: AGE_LABELS[value] }));
@@ -129,6 +130,7 @@ export function WaitlistForm({
           <input tabIndex={-1} autoComplete="off" {...form.field('website')} />
         </label>
       </div>
+      <FormPrivacyNote purpose="tell you when StepQ launches and hold your username" />
       <Button type="submit" loading={form.submitting} className="w-full">
         Join the waitlist
       </Button>

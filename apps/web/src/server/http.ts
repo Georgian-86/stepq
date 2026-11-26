@@ -6,6 +6,11 @@ import { confirmAction, describeAction } from './handlers/actions';
 import { submitAmbassador } from './handlers/ambassador';
 import { recordBacking } from './handlers/backing';
 import { sendFounderMessage } from './handlers/founder';
+import {
+  describeParentConsent,
+  requestParentConsent,
+  respondParentConsent,
+} from './handlers/parentConsent';
 import { submitTeamApplication } from './handlers/team';
 import { checkUsername, joinWaitlist, reserveUsername } from './handlers/waitlist';
 import { enforceRateLimit } from './rateLimit';
@@ -24,6 +29,9 @@ export const HANDLERS: { [K in ApiName]: Handler<K> } = {
   sendFounderMessage,
   describeAction,
   confirmAction,
+  requestParentConsent,
+  describeParentConsent,
+  respondParentConsent,
 };
 
 export function isApiName(name: string): name is ApiName {

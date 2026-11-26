@@ -9,6 +9,7 @@ import { TextArea } from '@/components/ui/TextArea';
 import { call } from '@/lib/api';
 import { PREVIEW_MODE, PREVIEW_NOTHING_SAVED } from '@/lib/preview';
 import { useZodForm } from '@/lib/useZodForm';
+import { FormPrivacyNote } from '@/components/site/FormPrivacyNote';
 
 export type Topic = (typeof TOPICS)[number];
 
@@ -103,6 +104,7 @@ export function FounderForm({
           <input tabIndex={-1} autoComplete="off" {...form.field('website')} />
         </label>
       </div>
+      <FormPrivacyNote purpose="answer your message" />
       <Button type="submit" loading={form.submitting} className="w-full">
         Send to the founder
       </Button>

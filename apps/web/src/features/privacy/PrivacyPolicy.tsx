@@ -10,18 +10,23 @@ const body =
 
 /** W15 Privacy policy (`11:1108`): mint title band, "On this page" card, policy sections. */
 export function PrivacyPolicy({ content = site }: { content?: SiteContent }) {
-  const policy = renderPolicy(content.privacyPolicy);
+  return <LegalPage title="Privacy policy" markdown={content.privacyPolicy} />;
+}
+
+/** A legal page in the W15 layout: privacy policy, terms of use, grievance officer. */
+export function LegalPage({ title, markdown }: { title: string; markdown: string }) {
+  const policy = renderPolicy(markdown);
   return (
     <>
-      <section aria-labelledby="privacy-title" className="bg-mint">
+      <section aria-labelledby="legal-title" className="bg-mint">
         <div
           className={`mx-auto flex max-w-[1440px] flex-col gap-[12px] py-[48px] md:py-[64px] ${GUTTER}`}
         >
           <h1
-            id="privacy-title"
+            id="legal-title"
             className="type-web-hero text-ink max-md:text-[44px] max-md:leading-[48px]"
           >
-            Privacy policy
+            {title}
           </h1>
         </div>
       </section>

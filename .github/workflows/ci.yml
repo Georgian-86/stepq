@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The site's API runs on Postgres: server tests and e2e use this throwaway database.
     services:
       postgres:
@@ -57,7 +57,7 @@ jobs:
     # Lighthouse on / (mobile preset): performance >= 0.9, CLS < 0.1, accessibility >= 0.95
     # (apps/web/lighthouserc.json). Separate from e2e; the build talks to the emulators' ports,
     # which are not running here, so live data stays empty as on a first visit.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

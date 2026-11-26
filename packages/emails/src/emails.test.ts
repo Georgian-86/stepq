@@ -175,4 +175,18 @@ describe('notification templates', () => {
     expect(r.html).toContain('42');
     expect(r.html).toContain('https://stepq.in/email/piko-happy.png');
   });
+  it('parentConsent', async () => {
+    const r = await render(
+      'parentConsent',
+      {
+        parentName: 'Sunita',
+        childName: 'Aarav',
+        consentUrl: 'https://stepq.in/parent-consent?token=t',
+      },
+      opts,
+    );
+    expect(r.subject).toBe('Aarav wants to use StepQ: your consent is needed');
+    expect(r.html).toContain('https://stepq.in/parent-consent?token=t');
+    expect(r.text).toContain('7 days');
+  });
 });

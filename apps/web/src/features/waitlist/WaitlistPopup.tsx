@@ -13,7 +13,18 @@ export const POPUP_DELAY_MS = 5000;
 export const FORCE_KEY = 'stepq.popup.force';
 
 /** Pages where a sales pop-up would get in the way. */
-const QUIET_PATHS = [/^\/confirm/, /^\/privacy/, /\/sent$/, /\/thank-you$/, /\/received$/];
+const QUIET_PATHS = [
+  /^\/confirm/,
+  /^\/privacy/,
+  /^\/terms/,
+  /^\/grievance/,
+  /^\/cookies/,
+  /^\/delete-account/,
+  /^\/parent-consent/,
+  /\/sent$/,
+  /\/thank-you$/,
+  /\/received$/,
+];
 
 function forced(): boolean {
   try {

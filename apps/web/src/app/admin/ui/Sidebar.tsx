@@ -2,6 +2,7 @@
 
 import type { TableInfo } from '@/server/admin/data';
 import { AdminIcon } from './AdminIcon';
+import { usePathname } from 'next/navigation';
 import { NavLink, useActiveTable } from './nav';
 
 /**
@@ -10,6 +11,7 @@ import { NavLink, useActiveTable } from './nav';
  */
 export function SidebarNav({ tables }: { tables: TableInfo[] }) {
   const current = useActiveTable();
+  const onPro = usePathname() === '/admin/pro';
   const main = tables.filter((x) => !x.internal);
   const system = tables.filter((x) => x.internal);
   const item = (on: boolean) =>
@@ -35,12 +37,26 @@ export function SidebarNav({ tables }: { tables: TableInfo[] }) {
       <li>
         <NavLink
           href="/admin"
-          aria-current={current === '' ? 'page' : undefined}
-          className={item(current === '')}
+          aria-current={current === '' && !onPro ? 'page' : undefined}
+          className={item(current === '' && !onPro)}
         >
           <span className="flex items-center gap-2">
             <AdminIcon name="chart" className="size-4" />
             Stats
+          </span>
+        </NavLink>
+      </li>
+      <li>
+        <NavLink
+          href="/admin/pro"
+          aria-current={onPro ? 'page' : undefined}
+          className={item(onPro)}
+        >
+          <span className="flex items-center gap-2">
+            <span aria-hidden="true" className="text-[#C98A1B]">
+              ♛
+            </span>
+            Pro &amp; limits
           </span>
         </NavLink>
       </li>

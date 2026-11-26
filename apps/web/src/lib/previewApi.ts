@@ -107,6 +107,15 @@ const handlers: Handlers = {
   confirmAction() {
     throw new Error(PREVIEW_ACTION_ERROR);
   },
+  requestParentConsent() {
+    throw new Error(PREVIEW_ACTION_ERROR);
+  },
+  describeParentConsent() {
+    throw new Error(PREVIEW_ACTION_ERROR);
+  },
+  respondParentConsent() {
+    throw new Error(PREVIEW_ACTION_ERROR);
+  },
 };
 
 /** Preview-mode stand-in for the callables: validates like the server, saves nothing remote. */

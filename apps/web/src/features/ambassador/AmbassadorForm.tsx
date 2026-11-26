@@ -14,6 +14,7 @@ import { TextArea } from '@/components/ui/TextArea';
 import { call } from '@/lib/api';
 import type { useZodForm } from '@/lib/useZodForm';
 import { receivedHref } from './received';
+import { FormPrivacyNote } from '@/components/site/FormPrivacyNote';
 
 export type AmbassadorFormState = ReturnType<typeof useZodForm<typeof ambassadorInput>>;
 
@@ -146,6 +147,7 @@ export function AmbassadorForm({
           <input tabIndex={-1} autoComplete="off" {...form.field('website')} />
         </label>
       </div>
+      <FormPrivacyNote purpose="review your application and reply to you" />
       <Button type="submit" loading={form.submitting || sent} className="w-full">
         Apply to be an ambassador
       </Button>

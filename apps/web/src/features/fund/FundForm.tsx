@@ -18,6 +18,7 @@ import { formatInr, parseAmount, payLabel, thankYouHref } from './amount';
 import { openUpiLink } from './handoff';
 import { IosUpiSheet } from './IosUpiSheet';
 import { PayModal } from './PayModal';
+import { FormPrivacyNote } from '@/components/site/FormPrivacyNote';
 
 type Choice = `${(typeof AMOUNT_PRESETS)[number]}` | 'other';
 
@@ -176,6 +177,7 @@ export function FundForm() {
             <input tabIndex={-1} autoComplete="off" {...form.field('website')} />
           </label>
         </div>
+        <FormPrivacyNote purpose="verify your backing and, if you tick the box, show your first name on the wall" />
         {payment?.platform === 'android' ? (
           <div className="flex flex-col items-center gap-xs">
             <PreviewNote className="w-full">{PREVIEW_UPI_NOTE}</PreviewNote>

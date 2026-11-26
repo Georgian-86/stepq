@@ -33,8 +33,18 @@ describe('Footer', () => {
       'href',
       'mailto:connect@stepq.in',
     );
+    expect(screen.getByRole('link', { name: 'Terms of use' })).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', { name: 'Grievance officer' })).toHaveAttribute(
+      'href',
+      '/grievance',
+    );
+    expect(screen.getByRole('link', { name: 'Cookie policy' })).toHaveAttribute('href', '/cookies');
+    expect(screen.getByRole('link', { name: 'Delete your account' })).toHaveAttribute(
+      'href',
+      '/delete-account',
+    );
     expect(screen.getByText('Chalo, chalte hain.')).toBeInTheDocument();
-    expect(screen.getByText('© 2026 StepQ. Made in India.')).toBeInTheDocument();
+    expect(screen.getByText(/© 2026 StepQ\. Made in India\./)).toBeInTheDocument();
   });
 
   it('gives every footer link and the wordmark a hit area of at least 44 px without changing layout', () => {
@@ -48,7 +58,12 @@ describe('Footer', () => {
     );
     const links = within(screen.getByRole('contentinfo')).getAllByRole('link');
     for (const link of links) {
-      if (link.getAttribute('aria-label') === 'StepQ home') {
+      // The wordmark and the small legal links in the bottom line keep their text size and
+      // get a 44 px tall pseudo-element target instead.
+      if (
+        link.getAttribute('aria-label') === 'StepQ home' ||
+        ['/cookies', '/delete-account'].includes(link.getAttribute('href') ?? '')
+      ) {
         expect(link.className).toContain('after:h-[44px]');
       } else {
         // 40 px tall per Figma; the pseudo-element extends the target 2 px above and below.

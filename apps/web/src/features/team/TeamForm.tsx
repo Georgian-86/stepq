@@ -13,6 +13,7 @@ import { call } from '@/lib/api';
 import type { useZodForm } from '@/lib/useZodForm';
 import { RESUME_ERROR, readResume } from './resume';
 import { SENT_KEY, sentHref } from './sent';
+import { FormPrivacyNote } from '@/components/site/FormPrivacyNote';
 
 export type TeamFormState = ReturnType<typeof useZodForm<typeof teamApplicationInput>>;
 
@@ -176,6 +177,7 @@ export function TeamForm({ form }: { form: TeamFormState }) {
           <input tabIndex={-1} autoComplete="off" {...form.field('website')} />
         </label>
       </div>
+      <FormPrivacyNote purpose="review your application and reply to you" />
       <Button type="submit" loading={form.submitting || sent} className="w-full">
         Submit application
       </Button>

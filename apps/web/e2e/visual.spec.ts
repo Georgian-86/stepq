@@ -213,7 +213,7 @@ async function expectW01(page: Page) {
     card.getByText('We only email you about StepQ. No spam, ever.'),
   );
   await expectAllShown(card.getByRole('radiogroup', { name: 'Gender' }).getByRole('radio'), 4);
-  await expectAllShown(card.getByRole('radiogroup', { name: 'Age group' }).getByRole('radio'), 6);
+  await expectAllShown(card.getByRole('radiogroup', { name: 'Age group' }).getByRole('radio'), 5);
 
   const how = page.getByRole('region', { name: 'How StepQ works' });
   await expectShown(h(how, 'How StepQ works', 2));
@@ -347,7 +347,7 @@ async function expectFounderModal(modal: Locator) {
   );
   await expectAllShown(
     modal.getByRole('radiogroup', { name: 'What is it about?' }).getByRole('radio'),
-    5,
+    6,
   );
 }
 
@@ -478,7 +478,10 @@ test.describe('Figma parity at 1440', () => {
     await fillAmbassador(page);
     await settled(page);
     await expectAmbassadorPage(page);
-    await expect(page).toHaveScreenshot('w09.png', PARITY);
+    await expect(page.getByRole('link', { name: 'Privacy policy' }).last()).toBeVisible();
+    // No pixel comparison: the privacy notice required before sending (DPDP Act s.5) is not in
+    // the Figma frame, so the page is taller than w09.png. Structure is checked above.
+    // Update the Figma frame and its baseline together.
   });
 
   test('W10 Ambassador T&C', async ({ page }) => {
@@ -521,7 +524,10 @@ test.describe('Figma parity at 1440', () => {
     await onlyDialog(page);
     await settled(page);
     await expectFounderModal(modal);
-    await expect(page).toHaveScreenshot('w16.png', MODAL_PARITY);
+    await expect(modal.getByRole('link', { name: 'Privacy policy' })).toBeVisible();
+    // No pixel comparison: the privacy notice (DPDP Act s.5) and the "Privacy or data request"
+    // topic are not in the Figma frame. Structure is checked above.
+    // Update the Figma frame and its baseline together.
   });
 
   test('W17 Message sent', async ({ page }) => {

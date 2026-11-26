@@ -25,7 +25,24 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['pg', 'nodemailer'],
   // Emailed links carry one-time tokens in the query: never send them to other sites.
   async headers() {
-    const headers = [{ key: 'Referrer-Policy', value: 'same-origin' }];
+    const headers = [
+      { key: 'Referrer-Policy', value: 'same-origin' },
+      // HTTPS only, for two years, on stepq.in and its subdomains.
+      { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      // No other site may frame these pages (clickjacking on the forms and /admin).
+      { key: 'X-Frame-Options', value: 'DENY' },
+      {
+        key: 'Content-Security-Policy',
+        value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+      },
+      // The site never needs these browser features.
+      {
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+      },
+      { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+    ];
     // Preview builds (no backend yet) must never be indexed.
     if (process.env.NEXT_PUBLIC_PREVIEW_MODE === '1') {
       headers.push({ key: 'X-Robots-Tag', value: 'noindex, nofollow' });
