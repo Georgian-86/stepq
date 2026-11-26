@@ -153,6 +153,28 @@ export const TABLES: Record<string, TableDef> = {
     ],
     filters: ['status', 'relationship'],
   },
+  store_subscriptions: {
+    label: 'App Store subscriptions',
+    blurb:
+      'StepQ Pro bought in the iOS app, as confirmed by Apple. Read-only; Apple sends renewals, refunds and expiries.',
+    columns: [
+      'user_id',
+      'product_id',
+      'environment',
+      'expires_at',
+      'revoked_at',
+      'auto_renew',
+      'updated_at',
+      'created_at',
+    ],
+    filters: ['product_id', 'environment', 'auto_renew'],
+  },
+  blocked_terms: {
+    label: 'Blocked words',
+    blurb:
+      "Words the Community refuses in posts and replies (whole words, any case). Read-only here; add or remove them in Supabase's SQL editor.",
+    columns: ['term', 'created_at'],
+  },
   admins: { label: 'Admins', columns: ['name', 'email', 'added_by', 'created_at'] },
   push_campaigns: {
     label: 'Push notifications',

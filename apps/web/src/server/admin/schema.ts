@@ -422,4 +422,27 @@ begin
   revoke all on stepq.parental_consents from public;
   grant select on stepq.parental_consents to authenticated;
 end $$;
+
+-- The iOS app's App Store subscriptions and the community word filter (stepq-app migration
+-- 20261128000000_ios_app_store). Both tables already have admins_read policies there; these
+-- read-only views show them in the dashboard. Skipped until that migration has run.
+do $$
+begin
+  if to_regclass('app.store_subscriptions') is not null then
+    grant usage on schema app to authenticated;
+    create or replace view stepq.store_subscriptions with (security_invoker = true) as
+      select original_transaction_id, user_id, product_id, environment, expires_at, revoked_at,
+        auto_renew, updated_at, created_at
+      from app.store_subscriptions;
+    revoke all on stepq.store_subscriptions from public;
+    grant select on stepq.store_subscriptions to authenticated;
+  end if;
+  if to_regclass('app.blocked_terms') is not null then
+    grant usage on schema app to authenticated;
+    create or replace view stepq.blocked_terms with (security_invoker = true) as
+      select term, added_at as created_at, added_by from app.blocked_terms;
+    revoke all on stepq.blocked_terms from public;
+    grant select on stepq.blocked_terms to authenticated;
+  end if;
+end $$;
 `;

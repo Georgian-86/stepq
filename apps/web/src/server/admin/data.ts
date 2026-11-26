@@ -28,7 +28,12 @@ export function ensureAdminSchema(): Promise<void> {
            )
            -- The app's parental consent table appeared after the admin SQL last ran.
            and (to_regclass('app.parental_consents') is null
-             or to_regclass('stepq.parental_consents') is not null) as ok`,
+             or to_regclass('stepq.parental_consents') is not null)
+           -- The iOS app's tables (App Store subscriptions, word filter) appeared later too.
+           and (to_regclass('app.store_subscriptions') is null
+             or to_regclass('stepq.store_subscriptions') is not null)
+           and (to_regclass('app.blocked_terms') is null
+             or to_regclass('stepq.blocked_terms') is not null) as ok`,
         [ADMIN_MARK],
       );
       return rows[0]!.ok;
