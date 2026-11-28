@@ -13,7 +13,23 @@ import {
 import type { CSSProperties, ReactNode } from 'react';
 import { colors, typeStyles } from '@stepq/tokens';
 
-export type PikoMood = 'happy' | 'cheer';
+/** "Kadam Gold": the app's Pro palette (stepq-app ui/theme/Color.kt), used only for Pro moments. */
+export const proColors = {
+  gold1: '#FFE29A',
+  gold2: '#F5B83D',
+  gold3: '#C98A1B',
+  goldText: '#8A5A00',
+  goldOnNight: '#F5D58A',
+  night1: '#17452C',
+  night2: '#0E2A1A',
+  night3: '#0B2014',
+  onNightMuted: '#CFE3D6',
+  champagne: '#FFF8E6',
+  champagne2: '#FFEFC4',
+} as const;
+
+export type PikoMood = 'happy' | 'cheer' | 'nudge';
+export type LayoutVariant = 'default' | 'pro';
 
 const FONTS_HREF =
   'https://fonts.googleapis.com/css2?family=Fredoka:wght@600&family=Nunito:wght@400;700&display=swap';
@@ -53,6 +69,36 @@ const s = {
     color: colors.ink,
     margin: 0,
   },
+  proHeader: {
+    backgroundColor: proColors.night2,
+    backgroundImage: `linear-gradient(135deg, ${proColors.night1} 0%, ${proColors.night3} 100%)`,
+    borderBottom: `3px solid ${proColors.gold2}`,
+    padding: '28px 32px',
+  },
+  proWordmark: {
+    fontFamily: HEADING_FONT,
+    fontWeight: 600,
+    fontSize: 35,
+    lineHeight: '40px',
+    letterSpacing: '-1px',
+    color: colors.white,
+    margin: 0,
+  },
+  proPill: {
+    display: 'inline-block',
+    marginLeft: 10,
+    padding: '3px 10px',
+    borderRadius: 999,
+    backgroundColor: proColors.gold2,
+    color: proColors.night2,
+    fontFamily: BODY_FONT,
+    fontWeight: 800,
+    fontSize: 12,
+    lineHeight: '16px',
+    letterSpacing: '1.2px',
+    verticalAlign: 'middle',
+  },
+  footer: { maxWidth: 600, padding: '20px 32px 8px' },
   content: { padding: 32 },
   h: { ...style('web/h2', HEADING_FONT), marginBottom: 16 },
   p: { ...style('web/body', BODY_FONT), marginBottom: 16 },
@@ -89,8 +135,13 @@ export function Layout(props: {
   mood?: PikoMood;
   preview: string;
   children: ReactNode;
+  /** 'pro' swaps the green header for the Kadam Gold night header used for Pro moments. */
+  variant?: LayoutVariant;
+  /** Shown under the card (e.g. why you got this email, unsubscribe). */
+  footer?: ReactNode;
 }) {
   const mood = props.mood ?? 'happy';
+  const pro = props.variant === 'pro';
   return (
     <Html lang="en">
       <Head>
@@ -100,13 +151,14 @@ export function Layout(props: {
       <Preview>{props.preview}</Preview>
       <Body style={s.body}>
         <Container style={s.card}>
-          <Section style={s.header}>
+          <Section style={pro ? s.proHeader : s.header}>
             <table width="100%" role="presentation" cellPadding={0} cellSpacing={0}>
               <tbody>
                 <tr>
                   <td>
-                    <Text style={s.wordmark}>
-                      step<span style={{ color: colors.deep }}>q</span>
+                    <Text style={pro ? s.proWordmark : s.wordmark}>
+                      step<span style={{ color: pro ? proColors.gold2 : colors.deep }}>q</span>
+                      {pro ? <span style={s.proPill}>PRO</span> : null}
                     </Text>
                   </td>
                   <td align="right">
@@ -123,6 +175,7 @@ export function Layout(props: {
           </Section>
           <Section style={s.content}>{props.children}</Section>
         </Container>
+        {props.footer ? <Container style={s.footer}>{props.footer}</Container> : null}
       </Body>
     </Html>
   );
@@ -174,4 +227,4 @@ export function MaybeLink(p: { url: string }) {
   );
 }
 
-export { s as layoutStyles };
+export { s as layoutStyles, HEADING_FONT, BODY_FONT, style as typeStyle };
