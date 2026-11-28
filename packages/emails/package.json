@@ -9,7 +9,10 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "build:png": "node scripts/build-png.mjs"
+    "build:png": "node scripts/build-png.mjs",
+    "export:html": "tsx scripts/export-html.tsx",
+    "export:supabase": "tsx scripts/export-html.tsx --supabase",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@react-email/components": "^0.0.41",

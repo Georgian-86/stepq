@@ -14,6 +14,7 @@ import { BackingAlert, backingAlertSubject, type BackingAlertProps } from './Bac
 import { FounderMessage, founderMessageSubject, type FounderMessageProps } from './FounderMessage';
 import { ParentConsent, parentConsentSubject, type ParentConsentProps } from './ParentConsent';
 import { ReserveLink, reserveLinkSubject, type ReserveLinkProps } from './ReserveLink';
+import { lifecycleDefs, type LifecycleTemplateProps } from './lifecycle';
 import {
   TeamApplicationAlert,
   teamApplicationAlertSubject,
@@ -28,7 +29,7 @@ export type TemplateProps = {
   backingAlert: BackingAlertProps;
   reserveLink: ReserveLinkProps;
   parentConsent: ParentConsentProps;
-};
+} & LifecycleTemplateProps;
 export type TemplateName = keyof TemplateProps;
 export type Rendered = { subject: string; html: string; text: string };
 export type RenderOptions = { siteUrl: string };
@@ -63,6 +64,7 @@ const defs: { [K in TemplateName]: Def<TemplateProps[K]> } = {
     subject: parentConsentSubject,
     element: (p, siteUrl) => <ParentConsent {...p} siteUrl={siteUrl} />,
   },
+  ...lifecycleDefs,
 };
 
 export async function render<K extends TemplateName>(
@@ -77,3 +79,13 @@ export async function render<K extends TemplateName>(
   const [html, text] = await Promise.all([reactRender(el), reactRender(el, { plainText: true })]);
   return { subject: def.subject(props), html, text };
 }
+
+export {
+  catalog,
+  PRO_PERKS,
+  SUPABASE,
+  type CatalogEntry,
+  type LifecycleTemplateName,
+  type LifecycleTemplateProps,
+  type MailCategory,
+} from './lifecycle';

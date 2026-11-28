@@ -7,7 +7,7 @@ import { pikoSvg } from '../../brand/src/generated.ts';
 
 const outDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../../apps/web/public/email');
 mkdirSync(outDir, { recursive: true });
-for (const mood of ['happy', 'cheer']) {
+for (const mood of ['happy', 'cheer', 'nudge']) {
   const png = new Resvg(pikoSvg[mood], { fitTo: { mode: 'width', value: 144 } }).render().asPng();
   writeFileSync(resolve(outDir, `piko-${mood}.png`), png);
   console.log(`wrote piko-${mood}.png (${png.length} bytes)`);
